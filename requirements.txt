@@ -2,3 +2,17 @@ torch
 numpy
 pandas
 pillow
+pandas
+scikit-learn
+torchvision
+Pillow
+opencv-python
+matplotlib
+seaborn
+plotly
+grad-cam
+streamlit
+tqdm
+PyYAML
+ipykernel
+pathlib
