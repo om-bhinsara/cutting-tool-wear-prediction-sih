@@ -1,0 +1,98 @@
+# ==============================
+# Python
+# ==============================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+cenv/
+
+# ==============================
+# Jupyter
+# ==============================
+.ipynb_checkpoints/
+
+# ==============================
+# IDE
+# ==============================
+.vscode/
+.idea/
+
+# ==============================
+# OS
+# ==============================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==============================
+# Python cache / testing
+# ==============================
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ==============================
+# Environment / secrets
+# ==============================
+.env
+.env.*
+!.env.example
+
+# ==============================
+# Models / checkpoints
+# ==============================
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# ==============================
+# Training outputs
+# ==============================
+results/
+runs/
+wandb/
+mlruns/
+
+# ==============================
+# Generated dataset
+# ==============================
+images/
+edge_images/
+sensors/
+previews/
+
+# ==============================
+# Dataset files
+# ==============================
+*.npy
+*.npz
+*.parquet
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+
+# ==============================
+# Generated visualizations
+# ==============================
+*_progression.jpg
+ALL_10_SETS_PROGRESS.jpg
+verify_crop.png
+verify_sensor.png
+
+labels.csv
+
+config.json
+
+data
