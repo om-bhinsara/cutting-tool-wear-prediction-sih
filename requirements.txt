@@ -1,7 +1,12 @@
 torch
+torchvision
 numpy
-pandas
 pillow
+flask
+flask-cors
+werkzeug
+pyjwt
+requests
 pandas
 scikit-learn
 torchvision
