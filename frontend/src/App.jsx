@@ -30,36 +30,6 @@ const TOOL_SPECS = {
   BASE_WEAR_RATE: 300.0 / 315,
 };
 
-const DEFAULT_BASELINE = {
-  wear_um: 52.6,
-  status: 'Healthy (0–100 µm)',
-  badge_color: 'success',
-  health_score: 82.5,
-  early_warning: false,
-  recommendation: 'Optimal Condition — Continue Normal Operation',
-  agreement: {
-    score_pct: 94.2,
-    status: 'Strong Agreement (High Multimodal Coherence)',
-    color: 'success',
-    img_activation: 14.82,
-    sensor_activation: 13.96
-  },
-  sensor_quality: {
-    confidence: 98.4,
-    status: 'Optimal Signal (High SNR — All 5 Channels Active)',
-    color: 'success',
-    valid: true
-  },
-  sensor_waveforms: Array.from({ length: 40 }, (_, i) => ({
-    t: i * 12,
-    accel: Math.sin(i * 0.4) * 0.5 + 0.1,
-    acoustic: Math.cos(i * 0.3) * 0.8 + 0.2,
-    Fx: Math.sin(i * 0.2) * 1.5 + 2.0,
-    Fy: Math.cos(i * 0.25) * 1.2 + 1.8,
-    Fz: Math.sin(i * 0.35) * 0.9 + 1.2
-  }))
-};
-
 export default function App() {
   // Authentication State
   const [currentUser, setCurrentUser] = useState(() => {
@@ -81,7 +51,7 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Application Routing & Functional State
+  // Application Routing & Inputs
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -91,40 +61,12 @@ export default function App() {
   const [error, setError] = useState('');
   const [activeChannels, setActiveChannels] = useState(['accel', 'acoustic', 'Fx', 'Fy', 'Fz']);
 
-  const [result, setResult] = useState(() => {
-    try {
-      const cached = localStorage.getItem('phm_live_result_data_v7');
-      return cached ? JSON.parse(cached) : DEFAULT_BASELINE;
-    } catch {
-      return DEFAULT_BASELINE;
-    }
-  });
+  // Clean Initial State: Starts at null until real inference runs
+  const [result, setResult] = useState(null);
 
-  const [progressionHistory, setProgressionHistory] = useState(() => {
-    try {
-      const saved = localStorage.getItem('phm_history_data_v7');
-      return saved ? JSON.parse(saved) : [
-        { cycle: 1, wear_um: 18.2, wear_mm: 0.0182, health_score: 93.9, status: 'Healthy', recommendation: 'Continue Normal Operation', timestamp: '10:00:00 AM' },
-        { cycle: 2, wear_um: 34.5, wear_mm: 0.0345, health_score: 88.5, status: 'Healthy', recommendation: 'Continue Normal Operation', timestamp: '10:15:00 AM' },
-        { cycle: 3, wear_um: 52.6, wear_mm: 0.0526, health_score: 82.5, status: 'Healthy', recommendation: 'Optimal Condition — Continue Normal Operation', timestamp: '10:30:00 AM' }
-      ];
-    } catch {
-      return [];
-    }
-  });
-
-  const [machiningCycle, setMachiningCycle] = useState(() => {
-    try {
-      const saved = localStorage.getItem('phm_history_data_v7');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed.length > 0 ? parsed[parsed.length - 1].cycle + 1 : 4;
-      }
-    } catch {
-      return 4;
-    }
-    return 4;
-  });
+  // Clean Initial Session History
+  const [progressionHistory, setProgressionHistory] = useState([]);
+  const [machiningCycle, setMachiningCycle] = useState(1);
 
   useEffect(() => {
     if (currentUser) {
@@ -133,16 +75,6 @@ export default function App() {
       localStorage.removeItem('phm_auth_user');
     }
   }, [currentUser]);
-
-  useEffect(() => {
-    if (result) {
-      localStorage.setItem('phm_live_result_data_v7', JSON.stringify(result));
-    }
-  }, [result]);
-
-  useEffect(() => {
-    localStorage.setItem('phm_history_data_v7', JSON.stringify(progressionHistory));
-  }, [progressionHistory]);
 
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
@@ -179,6 +111,9 @@ export default function App() {
   const handleLogout = () => {
     if (window.confirm('Confirm sign out of the CNC Tool Wear PHM monitoring suite?')) {
       setCurrentUser(null);
+      setResult(null);
+      setProgressionHistory([]);
+      setMachiningCycle(1);
       localStorage.removeItem('phm_auth_user');
       localStorage.removeItem('phm_jwt_token');
     }
@@ -225,14 +160,7 @@ export default function App() {
 
     try {
       const data = await runWearPrediction(formData);
-      const enrichedData = {
-        ...data,
-        agreement: data.agreement || DEFAULT_BASELINE.agreement,
-        sensor_quality: data.sensor_quality || DEFAULT_BASELINE.sensor_quality,
-        sensor_waveforms: data.sensor_waveforms || DEFAULT_BASELINE.sensor_waveforms
-      };
-
-      setResult(enrichedData);
+      setResult(data);
 
       const currentCycle = parseInt(machiningCycle) || (progressionHistory.length + 1);
       const wearMm = parseFloat((data.wear_um / 1000).toFixed(4));
@@ -241,7 +169,7 @@ export default function App() {
         cycle: currentCycle,
         wear_um: data.wear_um,
         wear_mm: wearMm,
-        health_score: data.health_score || Math.max(0, Math.round((1 - data.wear_um / 300) * 100)),
+        health_score: data.health_score ?? Math.max(0, Math.round((1 - data.wear_um / 300) * 100)),
         status: data.status,
         recommendation: data.recommendation,
         timestamp: new Date().toLocaleTimeString()
@@ -260,9 +188,7 @@ export default function App() {
     if (window.confirm('Reset all live tracked machining wear cycles?')) {
       setProgressionHistory([]);
       setMachiningCycle(1);
-      setResult(DEFAULT_BASELINE);
-      localStorage.removeItem('phm_history_data_v7');
-      localStorage.removeItem('phm_live_result_data_v7');
+      setResult(null);
     }
   };
 
@@ -280,11 +206,11 @@ export default function App() {
     a.click();
   };
 
-  const activeData = result || DEFAULT_BASELINE;
-  const currentWear = activeData.wear_um;
-  const gaugePercent = Math.min(100, Math.max(0, (currentWear / TOOL_SPECS.FAILURE_LIMIT_UM) * 100));
-  const lifeConsumedPct = Math.min(100, Math.max(0, (currentWear / TOOL_SPECS.FAILURE_LIMIT_UM) * 100));
-  const remainingLifePct = Math.max(0, 100 - lifeConsumedPct);
+  // Safe Physics Calculations based solely on active run
+  const currentWear = result ? result.wear_um : 0;
+  const gaugePercent = result ? Math.min(100, Math.max(0, (currentWear / TOOL_SPECS.FAILURE_LIMIT_UM) * 100)) : 0;
+  const lifeConsumedPct = result ? Math.min(100, Math.max(0, (currentWear / TOOL_SPECS.FAILURE_LIMIT_UM) * 100)) : 0;
+  const remainingLifePct = result ? Math.max(0, 100 - lifeConsumedPct) : 100;
 
   let dynamicWearRate = TOOL_SPECS.BASE_WEAR_RATE;
   if (progressionHistory.length >= 2) {
@@ -296,12 +222,9 @@ export default function App() {
   }
 
   const remainingWearAllowance = Math.max(0, TOOL_SPECS.FAILURE_LIMIT_UM - currentWear);
-  const estimatedRemainingCycles = currentWear >= TOOL_SPECS.FAILURE_LIMIT_UM
-    ? 0
-    : Math.max(0, Math.round(remainingWearAllowance / dynamicWearRate));
-
-  const agreementData = activeData.agreement || DEFAULT_BASELINE.agreement;
-  const sensorQualityData = activeData.sensor_quality || DEFAULT_BASELINE.sensor_quality;
+  const estimatedRemainingCycles = result
+    ? (currentWear >= TOOL_SPECS.FAILURE_LIMIT_UM ? 0 : Math.max(0, Math.round(remainingWearAllowance / dynamicWearRate)))
+    : TOOL_SPECS.NOMINAL_TOTAL_CYCLES;
 
   // Render Authentication Gate if user is not signed in
   if (!currentUser) {
@@ -528,13 +451,13 @@ export default function App() {
         {/* ================= PAGE: LIVE DASHBOARD ================= */}
         {currentPage === 'dashboard' && (
           <div>
-            {activeData.early_warning && (
+            {result?.early_warning && (
               <div className="alert alert-danger d-flex align-items-center justify-content-between p-3 mb-4 shadow-sm border-2">
                 <div className="d-flex align-items-center gap-3">
                   <i className="bi bi-exclamation-octagon-fill fs-3 text-danger"></i>
                   <div>
                     <strong className="d-block font-mono">EARLY-WARNING MAINTENANCE ALERT</strong>
-                    <span className="small">Tool flank wear (V_B = {activeData.wear_um} µm) exceeded safe limits. {activeData.recommendation}</span>
+                    <span className="small">Tool flank wear (V_B = {result.wear_um} µm) exceeded safe limits. {result.recommendation}</span>
                   </div>
                 </div>
                 <span className="badge bg-danger font-mono fs-6 px-3 py-2">MAINTENANCE REQUIRED</span>
@@ -556,8 +479,8 @@ export default function App() {
                 <div className="d-flex align-items-center gap-3">
                   <div className="text-end font-mono">
                     <span className="text-secondary small d-block">Operator Health Score</span>
-                    <span className={`fw-bold fs-5 ${activeData.health_score > 60 ? 'text-success' : activeData.health_score > 30 ? 'text-warning' : 'text-danger'}`}>
-                      {activeData.health_score}%
+                    <span className={`fw-bold fs-5 ${result ? (result.health_score > 60 ? 'text-success' : result.health_score > 30 ? 'text-warning' : 'text-danger') : 'text-info'}`}>
+                      {result ? `${result.health_score}%` : '100% (New / Ready)'}
                     </span>
                   </div>
                 </div>
@@ -600,17 +523,15 @@ export default function App() {
                     );
                   })}
 
-                  {currentWear > 0 && (
-                    <div className="position-absolute d-flex flex-column align-items-center" style={{ left: `${gaugePercent}%`, top: '27px', transform: 'translateX(-50%)', zIndex: 5, transition: 'left 0.4s ease' }}>
-                      <div style={{ width: '16px', height: '16px', backgroundColor: currentWear > 300 ? '#ef4444' : currentWear > 200 ? '#f97316' : currentWear > 100 ? '#f59e0b' : '#00f2fe', border: '3px solid #ffffff', borderRadius: '50%', boxShadow: '0 0 10px #00f2fe' }} />
-                      <div className="d-flex flex-column align-items-center mt-1">
-                        <span className="text-info fw-bold" style={{ fontSize: '11px', lineHeight: 1 }}>↑</span>
-                        <div className="badge bg-light text-dark font-mono px-2 py-1 shadow fw-bold mt-1" style={{ fontSize: '12px', border: '1px solid #00f2fe', whiteSpace: 'nowrap' }}>
-                          Current: {currentWear.toFixed(1)} µm
-                        </div>
+                  <div className="position-absolute d-flex flex-column align-items-center" style={{ left: `${gaugePercent}%`, top: '27px', transform: 'translateX(-50%)', zIndex: 5, transition: 'left 0.4s ease' }}>
+                    <div style={{ width: '16px', height: '16px', backgroundColor: currentWear > 300 ? '#ef4444' : currentWear > 200 ? '#f97316' : currentWear > 100 ? '#f59e0b' : '#00f2fe', border: '3px solid #ffffff', borderRadius: '50%', boxShadow: '0 0 10px #00f2fe' }} />
+                    <div className="d-flex flex-column align-items-center mt-1">
+                      <span className="text-info fw-bold" style={{ fontSize: '11px', lineHeight: 1 }}>↑</span>
+                      <div className="badge bg-light text-dark font-mono px-2 py-1 shadow fw-bold mt-1" style={{ fontSize: '12px', border: '1px solid #00f2fe', whiteSpace: 'nowrap' }}>
+                        {result ? `Current: ${currentWear.toFixed(1)} µm` : 'System Ready • 0.0 µm'}
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 <div className="row g-3 pt-3 font-mono small border-top border-secondary border-opacity-25 mt-3">
@@ -630,12 +551,12 @@ export default function App() {
                   <div className="col-md-3">
                     <span className="text-secondary d-block">Health Stage Classification:</span>
                     <span className={`badge bg-${currentWear <= 100 ? 'success' : currentWear <= 200 ? 'warning text-dark' : 'danger'} font-mono px-2 py-1 mt-1`}>
-                      {currentWear <= 100 ? 'Healthy (0–100 µm)' : currentWear <= 200 ? 'Moderate (100–200 µm)' : currentWear <= 300 ? 'High Wear' : 'Critical Failure'}
+                      {result ? (currentWear <= 100 ? 'Healthy (0–100 µm)' : currentWear <= 200 ? 'Moderate (100–200 µm)' : currentWear <= 300 ? 'High Wear' : 'Critical Failure') : 'Healthy (Unused / 0 µm)'}
                     </span>
                   </div>
                   <div className="col-md-3">
                     <span className="text-secondary d-block">Prescriptive Action:</span>
-                    <span className="text-light small">{activeData.recommendation}</span>
+                    <span className="text-light small">{result ? result.recommendation : 'Upload tool micrograph crop to calculate initial wear'}</span>
                   </div>
                 </div>
               </div>
@@ -718,33 +639,41 @@ export default function App() {
                   </div>
 
                   <div className="p-4 flex-grow-1 d-flex flex-column justify-content-center">
-                    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="p-4 bg-white border rounded text-center my-auto shadow-sm">
-                      <div className="font-mono text-muted small text-uppercase mb-1">
-                        PREDICTED FLANK WEAR WIDTH (V_B)
+                    {result ? (
+                      <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="p-4 bg-white border rounded text-center my-auto shadow-sm">
+                        <div className="font-mono text-muted small text-uppercase mb-1">
+                          PREDICTED FLANK WEAR WIDTH (V_B)
+                        </div>
+                        <div className="display-4 fw-bold font-mono text-dark mb-1">
+                          {result.wear_um} <span className="fs-5 text-secondary">µm</span>
+                        </div>
+                        <div className="font-mono text-primary fw-bold mb-2">
+                          [ {(result.wear_um / 1000).toFixed(4)} mm ]
+                        </div>
+                        <div className="d-flex justify-content-center gap-2 my-2">
+                          <span className={`badge bg-${result.badge_color} px-3 py-2 fs-6 font-mono`}>
+                            Status: {result.status}
+                          </span>
+                        </div>
+                        <div className="p-2 px-3 mt-3 rounded border font-mono small bg-light text-dark">
+                          <strong>Maintenance Action:</strong> {result.recommendation}
+                        </div>
+                        <div className="row g-2 text-start font-mono small text-secondary mt-3 pt-2 border-top">
+                          <div className="col-6">Evaluated Model:</div>
+                          <div className="col-6 text-end text-primary fw-bold">image_sensor.pt</div>
+                          <div className="col-6">Test R² Score:</div>
+                          <div className="col-6 text-end text-success fw-bold">0.9938</div>
+                          <div className="col-6">Model Test MAE:</div>
+                          <div className="col-6 text-end text-dark fw-bold">3.09 µm</div>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <div className="text-center py-5 font-mono text-secondary my-auto">
+                        <i className="bi bi-radar display-4 d-block text-muted mb-2 opacity-50"></i>
+                        <div className="fw-bold text-dark mb-1">AWAITING TOOL TELEMETRY &amp; IMAGE</div>
+                        <div className="small">Select a cutter edge image on the left and execute prediction to begin real-time PHM.</div>
                       </div>
-                      <div className="display-4 fw-bold font-mono text-dark mb-1">
-                        {activeData.wear_um} <span className="fs-5 text-secondary">µm</span>
-                      </div>
-                      <div className="font-mono text-primary fw-bold mb-2">
-                        [ {(activeData.wear_um / 1000).toFixed(4)} mm ]
-                      </div>
-                      <div className="d-flex justify-content-center gap-2 my-2">
-                        <span className={`badge bg-${activeData.badge_color} px-3 py-2 fs-6 font-mono`}>
-                          Status: {activeData.status}
-                        </span>
-                      </div>
-                      <div className="p-2 px-3 mt-3 rounded border font-mono small bg-light text-dark">
-                        <strong>Maintenance Action:</strong> {activeData.recommendation}
-                      </div>
-                      <div className="row g-2 text-start font-mono small text-secondary mt-3 pt-2 border-top">
-                        <div className="col-6">Evaluated Model:</div>
-                        <div className="col-6 text-end text-primary fw-bold">image_sensor.pt</div>
-                        <div className="col-6">Test R² Score:</div>
-                        <div className="col-6 text-end text-success fw-bold">0.9938</div>
-                        <div className="col-6">Model Test MAE:</div>
-                        <div className="col-6 text-end text-dark fw-bold">3.09 µm</div>
-                      </div>
-                    </motion.div>
+                    )}
                   </div>
 
                   <div className="p-3 bg-light border-top font-mono small text-secondary d-flex justify-content-between align-items-center">
@@ -770,24 +699,30 @@ export default function App() {
                 <span className="badge bg-primary font-mono">Latent Projection Analysis</span>
               </div>
 
-              <div className="row g-3 align-items-center">
-                <div className="col-md-3 text-center border-end">
-                  <div className="display-4 fw-bold font-mono text-dark">{agreementData.score_pct}%</div>
-                  <span className={`badge bg-${agreementData.color} font-mono mt-1`}>
-                    {agreementData.color === 'success' ? 'High Agreement' : 'Discrepancy Check'}
-                  </span>
-                </div>
-                <div className="col-md-9 font-mono small">
-                  <p className="text-dark fw-bold mb-1">{agreementData.status}</p>
-                  <p className="text-secondary mb-2">
-                    Cross-stream verification checks whether optical wear patterns match dynamic force and acoustic vibration harmonics before trusting the final regression.
-                  </p>
-                  <div className="d-flex gap-4 text-muted" style={{ fontSize: '11px' }}>
-                    <span>Image Latent Energy: <strong>{agreementData.img_activation}</strong></span>
-                    <span>Sensor Latent Energy: <strong>{agreementData.sensor_activation}</strong></span>
+              {result?.agreement ? (
+                <div className="row g-3 align-items-center">
+                  <div className="col-md-3 text-center border-end">
+                    <div className="display-4 fw-bold font-mono text-dark">{result.agreement.score_pct}%</div>
+                    <span className={`badge bg-${result.agreement.color} font-mono mt-1`}>
+                      {result.agreement.color === 'success' ? 'High Agreement' : 'Discrepancy Check'}
+                    </span>
+                  </div>
+                  <div className="col-md-9 font-mono small">
+                    <p className="text-dark fw-bold mb-1">{result.agreement.status}</p>
+                    <p className="text-secondary mb-2">
+                      Cross-stream verification checks whether optical wear patterns match dynamic force and acoustic vibration harmonics before trusting the final regression.
+                    </p>
+                    <div className="d-flex gap-4 text-muted" style={{ fontSize: '11px' }}>
+                      <span>Image Latent Energy: <strong>{result.agreement.img_activation}</strong></span>
+                      <span>Sensor Latent Energy: <strong>{result.agreement.sensor_activation}</strong></span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="text-center py-4 text-muted font-mono small">
+                  Execute prediction on the Dashboard page to evaluate multimodal agreement.
+                </div>
+              )}
             </div>
 
             <div className="cad-panel p-4">
@@ -805,26 +740,26 @@ export default function App() {
                 <span className="badge bg-primary font-mono">Conv2d Layer 6</span>
               </div>
 
-              {activeData.gradcam ? (
+              {result?.gradcam ? (
                 <div className="row g-4 text-center">
                   <div className="col-md-4">
                     <div className="p-3 bg-light border rounded h-100 d-flex flex-column justify-content-between">
                       <span className="font-mono small fw-bold text-primary d-block mb-2">Grad-CAM Heatmap</span>
-                      <img src={activeData.gradcam.heatmap} alt="CAM" className="img-fluid rounded border shadow-sm" style={{ maxHeight: '220px', objectFit: 'contain' }} />
+                      <img src={result.gradcam.heatmap} alt="CAM" className="img-fluid rounded border shadow-sm" style={{ maxHeight: '220px', objectFit: 'contain' }} />
                       <span className="font-mono text-muted small mt-2" style={{ fontSize: '11px' }}>Normalized Thermal Field</span>
                     </div>
                   </div>
                   <div className="col-md-4">
                     <div className="p-3 bg-light border rounded h-100 d-flex flex-column justify-content-between">
                       <span className="font-mono small fw-bold text-danger d-block mb-2">Attention Overlay (Alpha = 0.35)</span>
-                      <img src={activeData.gradcam.overlay} alt="Overlay" className="img-fluid rounded border shadow-sm" style={{ maxHeight: '220px', objectFit: 'contain' }} />
+                      <img src={result.gradcam.overlay} alt="Overlay" className="img-fluid rounded border shadow-sm" style={{ maxHeight: '220px', objectFit: 'contain' }} />
                       <span className="font-mono text-danger small mt-2" style={{ fontSize: '11px' }}>Edge Wear Region Focused</span>
                     </div>
                   </div>
                   <div className="col-md-4">
                     <div className="p-3 bg-light border rounded h-100 d-flex flex-column justify-content-between">
                       <span className="font-mono small fw-bold text-secondary d-block mb-2">Raw Optical Micrograph</span>
-                      <img src={activeData.gradcam.original} alt="Raw" className="img-fluid rounded border shadow-sm" style={{ maxHeight: '220px', objectFit: 'contain' }} />
+                      <img src={result.gradcam.original} alt="Raw" className="img-fluid rounded border shadow-sm" style={{ maxHeight: '220px', objectFit: 'contain' }} />
                       <span className="font-mono text-muted small mt-2" style={{ fontSize: '11px' }}>224×224 Raw Microscopic View</span>
                     </div>
                   </div>
@@ -928,20 +863,26 @@ export default function App() {
                 <span className="badge bg-primary font-mono">SNR &amp; Drift Filter</span>
               </div>
 
-              <div className="row g-3 align-items-center">
-                <div className="col-md-3 text-center border-end">
-                  <div className="display-4 fw-bold font-mono text-dark">{sensorQualityData.confidence}%</div>
-                  <span className={`badge bg-${sensorQualityData.color} font-mono mt-1`}>
-                    {sensorQualityData.valid ? 'Telemetry Valid' : 'Telemetry Invalid'}
-                  </span>
+              {result?.sensor_quality ? (
+                <div className="row g-3 align-items-center">
+                  <div className="col-md-3 text-center border-end">
+                    <div className="display-4 fw-bold font-mono text-dark">{result.sensor_quality.confidence}%</div>
+                    <span className={`badge bg-${result.sensor_quality.color} font-mono mt-1`}>
+                      {result.sensor_quality.valid ? 'Telemetry Valid' : 'Telemetry Invalid'}
+                    </span>
+                  </div>
+                  <div className="col-md-9 font-mono small">
+                    <p className="text-dark fw-bold mb-1">Status: {result.sensor_quality.status}</p>
+                    <p className="text-secondary mb-0">
+                      Evaluates high-frequency signal variance, zero-drift flatlines, and Signal-to-Noise Ratio (SNR) across all 5 channels (Fx, Fy, Fz, Accel, AE) before passing tensors to the 1D-CNN encoder.
+                    </p>
+                  </div>
                 </div>
-                <div className="col-md-9 font-mono small">
-                  <p className="text-dark fw-bold mb-1">Status: {sensorQualityData.status}</p>
-                  <p className="text-secondary mb-0">
-                    Evaluates high-frequency signal variance, zero-drift flatlines, and Signal-to-Noise Ratio (SNR) across all 5 channels (Fx, Fy, Fz, Accel, AE) before passing tensors to the 1D-CNN encoder.
-                  </p>
+              ) : (
+                <div className="text-center py-4 text-muted font-mono small">
+                  Execute prediction on the Dashboard to view signal quality confidence score.
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="cad-panel p-4">
@@ -960,20 +901,26 @@ export default function App() {
                 </div>
               </div>
 
-              <div style={{ width: '100%', height: 320, background: '#ffffff', padding: '16px 12px 6px 0', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                <ResponsiveContainer>
-                  <LineChart data={activeData.sensor_waveforms || DEFAULT_BASELINE.sensor_waveforms} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="t" stroke="#94a3b8" tick={{ fontSize: 10, fontFamily: 'JetBrains Mono' }} />
-                    <YAxis stroke="#94a3b8" tick={{ fontSize: 10, fontFamily: 'JetBrains Mono' }} />
-                    <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#cbd5e1', borderRadius: '6px', fontFamily: 'JetBrains Mono', fontSize: '11px' }} />
-                    <Legend wrapperStyle={{ fontFamily: 'JetBrains Mono', fontSize: '11px', paddingTop: '10px' }} />
-                    {CHANNEL_CONFIG.map((ch) => activeChannels.includes(ch.key) && (
-                      <Line key={ch.key} type="monotone" dataKey={ch.key} name={ch.name} stroke={ch.color} strokeWidth={1.6} dot={false} />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+              {result?.sensor_waveforms ? (
+                <div style={{ width: '100%', height: 320, background: '#ffffff', padding: '16px 12px 6px 0', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                  <ResponsiveContainer>
+                    <LineChart data={result.sensor_waveforms} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="t" stroke="#94a3b8" tick={{ fontSize: 10, fontFamily: 'JetBrains Mono' }} />
+                      <YAxis stroke="#94a3b8" tick={{ fontSize: 10, fontFamily: 'JetBrains Mono' }} />
+                      <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#cbd5e1', borderRadius: '6px', fontFamily: 'JetBrains Mono', fontSize: '11px' }} />
+                      <Legend wrapperStyle={{ fontFamily: 'JetBrains Mono', fontSize: '11px', paddingTop: '10px' }} />
+                      {CHANNEL_CONFIG.map((ch) => activeChannels.includes(ch.key) && (
+                        <Line key={ch.key} type="monotone" dataKey={ch.key} name={ch.name} stroke={ch.color} strokeWidth={1.6} dot={false} />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="text-center py-5 text-muted font-mono small">
+                  Upload a 5-channel <code>.npy</code> file on Dashboard to render real-time waveforms.
+                </div>
+              )}
             </div>
           </div>
         )}
