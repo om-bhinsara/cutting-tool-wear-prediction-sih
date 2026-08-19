@@ -6,13 +6,10 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 
-# Allow importing model.py from src
 sys.path.append(str(Path(__file__).resolve().parent))
 
 from model import MultimodalWearModel
 from dataset import WearDataset
-
-# PATHS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -21,22 +18,20 @@ CHECKPOINT = ROOT / "outputs" / "checkpoints" / "image_sensor.pt"
 OUTPUT_DIR = ROOT / "outputs" / "gradcam"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# DEVICE
-
 DEVICE = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
 )
 
-print("Device:", DEVICE)
-print("Checkpoint:", CHECKPOINT)
+print("=" * 65)
+print("MATWI GRAD-CAM - LAYER 6")
+print("=" * 65)
 
-# LOAD DATASET
+print("Device     :", DEVICE)
+print("Checkpoint :", CHECKPOINT)
 
 dataset = WearDataset(ROOT, "test")
 
 print("Test samples:", len(dataset))
-
-# SELECT SAMPLE
 
 SAMPLE_INDEX = 0
 
@@ -50,8 +45,6 @@ target_um = (
     + dataset.y_mu
 )
 
-# LOAD MODEL
-
 model = MultimodalWearModel(
     image=True,
     sensor=True,
@@ -63,47 +56,27 @@ checkpoint = torch.load(
     map_location=DEVICE
 )
 
-model.load_state_dict(checkpoint["model"])
+model.load_state_dict(
+    checkpoint["model"]
+)
 
 model.eval()
 
 print("Model loaded successfully.")
 
-# GRAD-CAM TARGET LAYER
+dummy_metadata = torch.zeros(
+    (1, 7),
+    dtype=torch.float32,
+    device=DEVICE
+)
 
-# ImageEncoder.net:
-#
-# 0 Conv2d
-# 1 BatchNorm
-# 2 ReLU
-# 3 Conv2d
-# 4 BatchNorm
-# 5 ReLU
-# 6 Conv2d
-# 7 BatchNorm
-# 8 ReLU
-# 9 Conv2d
-# 10 BatchNorm
-# 11 ReLU
-# 12 AdaptiveAvgPool
-#
-# We use the LAST CONVOLUTION:
-#
-# image.net[9]
-#
-# This is:
-# Conv2d(96, 128, 3, 2, 1)
-
-target_layer = model.image.net[9]
-
-
-# STORAGE FOR ACTIVATIONS + GRADIENTS
+TARGET_LAYER = model.image.net[6]
 
 activations = None
 gradients = None
 
 
-def forward_hook(module, input, output):
+def forward_hook(module, inputs, output):
     global activations
     activations = output
 
@@ -113,55 +86,43 @@ def backward_hook(module, grad_input, grad_output):
     gradients = grad_output[0]
 
 
-forward_handle = target_layer.register_forward_hook(
+forward_handle = TARGET_LAYER.register_forward_hook(
     forward_hook
 )
 
-backward_handle = target_layer.register_full_backward_hook(
+backward_handle = TARGET_LAYER.register_full_backward_hook(
     backward_hook
 )
-
-
-# FORWARD PASS
 
 model.zero_grad(set_to_none=True)
 
 prediction_scaled = model(
     img,
     sensor,
-    torch.zeros(
-        (1, 7),
-        dtype=torch.float32,
-        device=DEVICE
-    )
+    dummy_metadata
 )
 
-# Convert prediction back to µm
 prediction_um = (
     prediction_scaled.item()
     * dataset.y_sd
     + dataset.y_mu
 )
 
-print(f"Actual wear     : {target_um:.2f} µm")
-print(f"Predicted wear  : {prediction_um:.2f} µm")
-
-
-# BACKWARD PASS
-
-# Regression output is a single scalar.
-# We calculate gradients with respect to that prediction.
+print()
+print("Actual wear    :", f"{target_um:.2f} µm")
+print("Predicted wear :", f"{prediction_um:.2f} µm")
 
 prediction_scaled.backward()
 
+if activations is None:
+    raise RuntimeError(
+        "Grad-CAM activation was not captured."
+    )
 
-# GRAD-CAM
-
-# activations:
-# [1, 128, H, W]
-#
-# gradients:
-# [1, 128, H, W]
+if gradients is None:
+    raise RuntimeError(
+        "Grad-CAM gradients were not captured."
+    )
 
 weights = gradients.mean(
     dim=(2, 3),
@@ -170,7 +131,10 @@ weights = gradients.mean(
 
 cam = (
     weights * activations
-).sum(dim=1, keepdim=True)
+).sum(
+    dim=1,
+    keepdim=True
+)
 
 cam = F.relu(cam)
 
@@ -181,22 +145,24 @@ cam = F.interpolate(
     align_corners=False
 )
 
-cam = cam.squeeze().detach().cpu().numpy()
-
-
-# NORMALIZE CAM
+cam = (
+    cam.squeeze()
+    .detach()
+    .cpu()
+    .numpy()
+)
 
 cam -= cam.min()
 
-if cam.max() > 0:
-    cam /= cam.max()
+max_value = cam.max()
 
+if max_value > 1e-8:
+    cam /= max_value
 
-# ORIGINAL IMAGE
-
+cam = np.power(cam, 0.8)
 
 original = (
-    img.squeeze()
+    img.squeeze(0)
     .detach()
     .cpu()
     .numpy()
@@ -209,29 +175,47 @@ original = np.clip(
     255
 ).astype(np.uint8)
 
-
-# CREATE HEATMAP
-
 heatmap = np.zeros(
-    (cam.shape[0], cam.shape[1], 3),
-    dtype=np.uint8
+    (
+        cam.shape[0],
+        cam.shape[1],
+        3
+    ),
+    dtype=np.float32
 )
 
-# Blue → Red style heatmap
-heatmap[..., 0] = (cam * 255).astype(np.uint8)
-heatmap[..., 1] = ((1 - np.abs(cam - 0.5) * 2) * 255).clip(
-    0, 255
+heatmap[..., 0] = np.clip(
+    2.0 * cam,
+    0,
+    1
+)
+
+heatmap[..., 1] = np.clip(
+    2.0 * (
+        1.0 - np.abs(cam - 0.5) * 2.0
+    ),
+    0,
+    1
+)
+
+heatmap[..., 2] = np.clip(
+    2.0 * (1.0 - cam),
+    0,
+    1
+)
+
+heatmap = (
+    heatmap * 255
 ).astype(np.uint8)
-heatmap[..., 2] = ((1 - cam) * 255).astype(np.uint8)
 
-
-# OVERLAY
-
-alpha = 0.45
+ALPHA = 0.35
 
 overlay = (
-    (1 - alpha) * original
-    + alpha * heatmap
+    (1.0 - ALPHA)
+    * original.astype(np.float32)
+    +
+    ALPHA
+    * heatmap.astype(np.float32)
 )
 
 overlay = np.clip(
@@ -240,31 +224,41 @@ overlay = np.clip(
     255
 ).astype(np.uint8)
 
-
-# SAVE RESULTS
+original_path = OUTPUT_DIR / "original.png"
+heatmap_path = OUTPUT_DIR / "gradcam_heatmap.png"
+overlay_path = OUTPUT_DIR / "gradcam_overlay.png"
 
 Image.fromarray(original).save(
-    OUTPUT_DIR / "original.png"
+    original_path
 )
 
 Image.fromarray(heatmap).save(
-    OUTPUT_DIR / "gradcam_heatmap.png"
+    heatmap_path
 )
 
 Image.fromarray(overlay).save(
-    OUTPUT_DIR / "gradcam_overlay.png"
+    overlay_path
 )
-
-# CLEANUP
 
 forward_handle.remove()
 backward_handle.remove()
 
+print()
+print("=" * 65)
+print("GRAD-CAM COMPLETED")
+print("=" * 65)
 
 print()
-print("=" * 60)
-print("Grad-CAM completed successfully")
-print("=" * 60)
-print("Original :", OUTPUT_DIR / "original.png")
-print("Heatmap  :", OUTPUT_DIR / "gradcam_heatmap.png")
-print("Overlay  :", OUTPUT_DIR / "gradcam_overlay.png")
+print("Target layer  : model.image.net[6]")
+print("Actual wear   :", f"{target_um:.2f} µm")
+print("Prediction    :", f"{prediction_um:.2f} µm")
+
+print()
+print("Saved:")
+print("Original :", original_path)
+print("Heatmap  :", heatmap_path)
+print("Overlay  :", overlay_path)
+
+print()
+print("Main frontend visualization:")
+print(overlay_path)
