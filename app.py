@@ -2,8 +2,10 @@ import io
 import os
 import sys
 import json
+import base64
 import numpy as np
 import torch
+import torch.nn.functional as F
 from PIL import Image
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -58,46 +60,120 @@ try:
 except Exception as e:
     print(f"Error loading checkpoint: {e}")
 
+# Exact 4-Tier Health Thresholds & Maintenance Recommendations
 def get_wear_condition(wear_um):
-    if wear_um < 80.0:
-        return {"status": "Normal / Sharp", "color": "#00ff87", "badge": "success"}
-    elif wear_um < 160.0:
-        return {"status": "Moderate Wear (Active)", "color": "#ffb703", "badge": "warning"}
+    if wear_um <= 100.0:
+        return {
+            "status": "Healthy",
+            "badge": "success",
+            "color": "#16a34a",
+            "recommendation": "Optimal Condition — Continue Normal Operation",
+            "rec_type": "success"
+        }
+    elif wear_um <= 200.0:
+        return {
+            "status": "Moderate",
+            "badge": "warning",
+            "color": "#d97706",
+            "recommendation": "Active Steady Wear — Continue Monitoring",
+            "rec_type": "warning"
+        }
+    elif wear_um <= 300.0:
+        return {
+            "status": "High",
+            "badge": "danger",
+            "color": "#ea580c",
+            "recommendation": "High Flank Wear Detected — Prepare Tool Replacement",
+            "rec_type": "warning"
+        }
     else:
-        return {"status": "Severe Flank Wear / Replace Tool", "color": "#ff416c", "badge": "danger"}
+        return {
+            "status": "Critical",
+            "badge": "dark",
+            "color": "#dc2626",
+            "recommendation": "Critical Failure Limit Exceeded — Replace Tool Immediately",
+            "rec_type": "danger"
+        }
+
+def generate_gradcam_overlay(img_tensor, sen_tensor, target_layer, original_np):
+    activations = None
+    gradients = None
+
+    def forward_hook(module, inp, out):
+        nonlocal activations
+        activations = out
+
+    def backward_hook(module, grad_in, grad_out):
+        nonlocal gradients
+        gradients = grad_out[0]
+
+    f_handle = target_layer.register_forward_hook(forward_hook)
+    b_handle = target_layer.register_full_backward_hook(backward_hook)
+
+    model.zero_grad(set_to_none=True)
+    dummy_meta = torch.zeros((1, 7), dtype=torch.float32, device=DEVICE)
+    pred_scaled = model(img_tensor, sen_tensor, dummy_meta)
+    pred_scaled.backward()
+
+    weights = gradients.mean(dim=(2, 3), keepdim=True)
+    cam = (weights * activations).sum(dim=1, keepdim=True)
+    cam = F.relu(cam)
+    cam = F.interpolate(cam, size=(224, 224), mode="bilinear", align_corners=False)
+    cam = cam.squeeze().detach().cpu().numpy()
+
+    cam -= cam.min()
+    if cam.max() > 0:
+        cam /= cam.max()
+
+    heatmap = np.zeros((cam.shape[0], cam.shape[1], 3), dtype=np.uint8)
+    heatmap[..., 0] = (cam * 255).astype(np.uint8)
+    heatmap[..., 1] = ((1 - np.abs(cam - 0.5) * 2) * 255).clip(0, 255).astype(np.uint8)
+    heatmap[..., 2] = ((1 - cam) * 255).astype(np.uint8)
+
+    alpha = 0.45
+    overlay = ((1 - alpha) * original_np + alpha * heatmap).clip(0, 255).astype(np.uint8)
+
+    f_handle.remove()
+    b_handle.remove()
+
+    buf_overlay = io.BytesIO()
+    Image.fromarray(overlay).save(buf_overlay, format="PNG")
+    b64_overlay = "data:image/png;base64," + base64.b64encode(buf_overlay.getvalue()).decode("utf-8")
+
+    buf_heatmap = io.BytesIO()
+    Image.fromarray(heatmap).save(buf_heatmap, format="PNG")
+    b64_heatmap = "data:image/png;base64," + base64.b64encode(buf_heatmap.getvalue()).decode("utf-8")
+
+    return b64_overlay, b64_heatmap
 
 @app.route("/", methods=["GET"])
 def index():
     return jsonify({
         "status": "Backend Active",
         "checkpoint_loaded": model is not None,
-        "active_checkpoint": CHECKPOINT_PATH,
-        "device": str(DEVICE),
-        "frontend_ui": "http://localhost:5173"
+        "active_checkpoint": CHECKPOINT_PATH
     })
 
 @app.route("/predict", methods=["POST"])
 def predict():
     if model is None:
-        return jsonify({
-            "error": f"Model checkpoint is not loaded. Checked paths: {POSSIBLE_PATHS}"
-        }), 500
+        return jsonify({"error": f"Model checkpoint not loaded. Checked: {POSSIBLE_PATHS}"}), 500
     
     try:
         if "image" not in request.files:
-            return jsonify({"error": "Edge crop image file ('image') is required."}), 400
+            return jsonify({"error": "Micrograph crop image ('image') is required."}), 400
         
         image_file = request.files["image"]
-        filename = image_file.filename
-        stem = os.path.splitext(filename)[0]
+        stem = os.path.splitext(image_file.filename)[0]
 
-        # 1. Process Tool Edge Image
-        pil_img = Image.open(image_file.stream).convert("RGB")
-        pil_img = pil_img.resize((224, 224))
-        img_np = np.asarray(pil_img, dtype=np.float32).transpose(2, 0, 1) / 255.0
+        # 1. Process Tool Image
+        pil_img = Image.open(image_file.stream).convert("RGB").resize((224, 224))
+        original_np = np.asarray(pil_img, dtype=np.uint8)
+        img_np = original_np.astype(np.float32).transpose(2, 0, 1) / 255.0
         img_tensor = torch.from_numpy(img_np).unsqueeze(0).to(DEVICE)
+        img_tensor.requires_grad_(True)
 
-        # 2. Sensor Preprocessing
+        # 2. Process Sensor Data
         sen_np = None
         if "sensor" in request.files:
             sensor_file = request.files["sensor"]
@@ -105,57 +181,60 @@ def predict():
         elif "sensor_json" in request.form:
             sen_np = np.array(json.loads(request.form["sensor_json"]), dtype=np.float32)
         else:
-            search_dirs = ["sensors", os.path.join("dataset", "sensors"), os.path.join("data", "sensors")]
-            for s_dir in search_dirs:
+            for s_dir in ["sensors", os.path.join("dataset", "sensors"), os.path.join("data", "sensors")]:
                 candidate = os.path.join(s_dir, f"{stem}.npy")
                 if os.path.exists(candidate):
                     sen_np = np.load(candidate).astype(np.float32)
-                    print(f"Auto-paired sensor file: {candidate}")
                     break
         
         if sen_np is None:
             sen_np = np.zeros((5, 512), dtype=np.float32)
 
-        if sen_np.shape[0] != 5:
-            return jsonify({
-                "error": f"Sensor input must have 5 channels, received shape: {sen_np.shape}"
-            }), 400
-        
         sen_tensor = torch.from_numpy(sen_np).unsqueeze(0).to(DEVICE)
 
-        # 3. Multimodal Inference
-        dummy_meta = torch.zeros((1, 7), dtype=torch.float32).to(DEVICE)
+        # 3. Grad-CAM Generation on Convolution Layer net[9]
+        target_layer = model.image.net[9]
+        overlay_b64, heatmap_b64 = generate_gradcam_overlay(img_tensor, sen_tensor, target_layer, original_np)
+
+        # 4. Model Prediction
+        dummy_meta = torch.zeros((1, 7), dtype=torch.float32, device=DEVICE)
         with torch.no_grad():
             pred_norm = model(img_tensor, sen_tensor, dummy_meta).cpu().numpy()[0]
         
-        wear_um = float(pred_norm * y_sd + y_mu)
-        wear_um = max(0.0, wear_um)
+        wear_um = max(0.0, float(pred_norm * y_sd + y_mu))
         condition = get_wear_condition(wear_um)
 
-        # 4. Downsample 512 points to ~100 time points for frontend charting
+        # 5. Downsample sensor waveforms
         step = max(1, sen_np.shape[1] // 100)
-        time_series = []
-        for i in range(0, sen_np.shape[1], step):
-            time_series.append({
+        time_series = [
+            {
                 "t": int(i),
                 "accel": round(float(sen_np[0, i]), 4),
                 "acoustic": round(float(sen_np[1, i]), 4),
                 "Fx": round(float(sen_np[2, i]), 4),
                 "Fy": round(float(sen_np[3, i]), 4),
                 "Fz": round(float(sen_np[4, i]), 4),
-            })
+            }
+            for i in range(0, sen_np.shape[1], step)
+        ]
 
         return jsonify({
             "wear_um": round(wear_um, 2),
             "status": condition["status"],
             "badge_color": condition["badge"],
+            "recommendation": condition["recommendation"],
+            "rec_type": condition["rec_type"],
             "model_used": "image_sensor.pt",
             "metrics": {
                 "test_mae_um": 3.09,
                 "test_rmse_um": 4.29,
                 "test_r2": 0.9938
             },
-            "sensor_waveforms": time_series
+            "sensor_waveforms": time_series,
+            "gradcam": {
+                "overlay": overlay_b64,
+                "heatmap": heatmap_b64
+            }
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
