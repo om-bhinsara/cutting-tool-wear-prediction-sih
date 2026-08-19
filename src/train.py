@@ -8,7 +8,11 @@ from model import MultimodalWearModel
 ROOT=Path(__file__).resolve().parents[1]
 DEVICE=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.manual_seed(42); np.random.seed(42)
-(ROOT/"checkpoints").mkdir(exist_ok=True); (ROOT/"results").mkdir(exist_ok=True)
+CHECKPOINT_DIR = ROOT / "outputs" / "checkpoints"
+RESULTS_DIR = ROOT / "outputs" / "results"
+
+CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 tr_ds=WearDataset(ROOT,"train"); va_ds=WearDataset(ROOT,"val"); te_ds=WearDataset(ROOT,"test")
 tr=DataLoader(tr_ds,32,shuffle=True,num_workers=0)
@@ -41,7 +45,7 @@ for name,flags in EXPS.items():
     model=MultimodalWearModel(*flags).to(DEVICE)
     opt=torch.optim.AdamW(model.parameters(),lr=2e-3,weight_decay=1e-4)
     lossfn=torch.nn.SmoothL1Loss(); best=1e9; bad=0
-    ck=ROOT/"checkpoints"/f"{name}.pt"
+    ck=CHECKPOINT_DIR / f"{name}.pt"
     for ep in range(1,31):
         model.train(); losses=[]
         for im,se,me,y in tr:
@@ -61,5 +65,5 @@ for name,flags in EXPS.items():
     print(f"TEST | MAE {mae:.2f} µm | RMSE {rmse:.2f} | R² {r2:.4f}")
     all_results.append([name,mae,rmse,r2])
 res=pd.DataFrame(all_results,columns=["experiment","test_MAE_um","test_RMSE_um","test_R2"])
-res.to_csv(ROOT/"results"/"ablation_results.csv",index=False)
+res.to_csv(RESULTS_DIR / "ablation_results.csv", index=False)
 print("\nFINAL ABLATION RESULTS"); print(res.to_string(index=False))

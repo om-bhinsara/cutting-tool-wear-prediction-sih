@@ -63,6 +63,8 @@ runs/
 wandb/
 mlruns/
 
+outputs
+
 # ==============================
 # Generated dataset
 # ==============================
