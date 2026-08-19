@@ -60,13 +60,11 @@ try:
 except Exception as e:
     print(f"Error loading checkpoint: {e}")
 
-# Exact 4-Tier Health Thresholds & Maintenance Recommendations
 def get_wear_condition(wear_um):
     if wear_um <= 100.0:
         return {
             "status": "Healthy",
             "badge": "success",
-            "color": "#16a34a",
             "recommendation": "Optimal Condition — Continue Normal Operation",
             "rec_type": "success"
         }
@@ -74,7 +72,6 @@ def get_wear_condition(wear_um):
         return {
             "status": "Moderate",
             "badge": "warning",
-            "color": "#d97706",
             "recommendation": "Active Steady Wear — Continue Monitoring",
             "rec_type": "warning"
         }
@@ -82,7 +79,6 @@ def get_wear_condition(wear_um):
         return {
             "status": "High",
             "badge": "danger",
-            "color": "#ea580c",
             "recommendation": "High Flank Wear Detected — Prepare Tool Replacement",
             "rec_type": "warning"
         }
@@ -90,12 +86,16 @@ def get_wear_condition(wear_um):
         return {
             "status": "Critical",
             "badge": "dark",
-            "color": "#dc2626",
             "recommendation": "Critical Failure Limit Exceeded — Replace Tool Immediately",
             "rec_type": "danger"
         }
 
-def generate_gradcam_overlay(img_tensor, sen_tensor, target_layer, original_np):
+def generate_layer6_gradcam(img_tensor, sen_tensor, original_np):
+    """
+    Executes Grad-CAM targeting model.image.net[6] (Layer 6 Conv2d)
+    with 0.8 power gamma scaling and alpha 0.35 blending.
+    """
+    target_layer = model.image.net[6]
     activations = None
     gradients = None
 
@@ -115,43 +115,61 @@ def generate_gradcam_overlay(img_tensor, sen_tensor, target_layer, original_np):
     pred_scaled = model(img_tensor, sen_tensor, dummy_meta)
     pred_scaled.backward()
 
+    if activations is None or gradients is None:
+        f_handle.remove()
+        b_handle.remove()
+        raise RuntimeError("Grad-CAM activations/gradients were not captured.")
+
+    # Channel-wise global average pooling of gradients
     weights = gradients.mean(dim=(2, 3), keepdim=True)
     cam = (weights * activations).sum(dim=1, keepdim=True)
     cam = F.relu(cam)
-    cam = F.interpolate(cam, size=(224, 224), mode="bilinear", align_corners=False)
+    cam = F.interpolate(cam, size=(img_tensor.shape[2], img_tensor.shape[3]), mode="bilinear", align_corners=False)
     cam = cam.squeeze().detach().cpu().numpy()
 
     cam -= cam.min()
-    if cam.max() > 0:
-        cam /= cam.max()
+    max_val = cam.max()
+    if max_val > 1e-8:
+        cam /= max_val
+    cam = np.power(cam, 0.8)
 
-    heatmap = np.zeros((cam.shape[0], cam.shape[1], 3), dtype=np.uint8)
-    heatmap[..., 0] = (cam * 255).astype(np.uint8)
-    heatmap[..., 1] = ((1 - np.abs(cam - 0.5) * 2) * 255).clip(0, 255).astype(np.uint8)
-    heatmap[..., 2] = ((1 - cam) * 255).astype(np.uint8)
+    # 3-Channel Heatmap formulation
+    heatmap = np.zeros((cam.shape[0], cam.shape[1], 3), dtype=np.float32)
+    heatmap[..., 0] = np.clip(2.0 * cam, 0, 1)
+    heatmap[..., 1] = np.clip(2.0 * (1.0 - np.abs(cam - 0.5) * 2.0), 0, 1)
+    heatmap[..., 2] = np.clip(2.0 * (1.0 - cam), 0, 1)
+    heatmap_uint8 = (heatmap * 255).astype(np.uint8)
 
-    alpha = 0.45
-    overlay = ((1 - alpha) * original_np + alpha * heatmap).clip(0, 255).astype(np.uint8)
+    # Blend overlay with ALPHA = 0.35
+    ALPHA = 0.35
+    overlay_uint8 = np.clip(
+        (1.0 - ALPHA) * original_np.astype(np.float32) + ALPHA * heatmap_uint8.astype(np.float32),
+        0,
+        255
+    ).astype(np.uint8)
 
     f_handle.remove()
     b_handle.remove()
 
-    buf_overlay = io.BytesIO()
-    Image.fromarray(overlay).save(buf_overlay, format="PNG")
-    b64_overlay = "data:image/png;base64," + base64.b64encode(buf_overlay.getvalue()).decode("utf-8")
+    # Encode all 3 images to Base64 data URLs
+    def to_b64(arr):
+        buf = io.BytesIO()
+        Image.fromarray(arr).save(buf, format="PNG")
+        return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("utf-8")
 
-    buf_heatmap = io.BytesIO()
-    Image.fromarray(heatmap).save(buf_heatmap, format="PNG")
-    b64_heatmap = "data:image/png;base64," + base64.b64encode(buf_heatmap.getvalue()).decode("utf-8")
-
-    return b64_overlay, b64_heatmap
+    return {
+        "heatmap": to_b64(heatmap_uint8),
+        "overlay": to_b64(overlay_uint8),
+        "original": to_b64(original_np)
+    }
 
 @app.route("/", methods=["GET"])
 def index():
     return jsonify({
         "status": "Backend Active",
         "checkpoint_loaded": model is not None,
-        "active_checkpoint": CHECKPOINT_PATH
+        "active_checkpoint": CHECKPOINT_PATH,
+        "gradcam_target_layer": "model.image.net[6]"
     })
 
 @app.route("/predict", methods=["POST"])
@@ -192,11 +210,10 @@ def predict():
 
         sen_tensor = torch.from_numpy(sen_np).unsqueeze(0).to(DEVICE)
 
-        # 3. Grad-CAM Generation on Convolution Layer net[9]
-        target_layer = model.image.net[9]
-        overlay_b64, heatmap_b64 = generate_gradcam_overlay(img_tensor, sen_tensor, target_layer, original_np)
+        # 3. Real Grad-CAM Generation on Layer 6
+        gradcam_images = generate_layer6_gradcam(img_tensor, sen_tensor, original_np)
 
-        # 4. Model Prediction
+        # 4. Final Inference
         dummy_meta = torch.zeros((1, 7), dtype=torch.float32, device=DEVICE)
         with torch.no_grad():
             pred_norm = model(img_tensor, sen_tensor, dummy_meta).cpu().numpy()[0]
@@ -204,7 +221,7 @@ def predict():
         wear_um = max(0.0, float(pred_norm * y_sd + y_mu))
         condition = get_wear_condition(wear_um)
 
-        # 5. Downsample sensor waveforms
+        # 5. Downsample Sensor Signal Waveforms
         step = max(1, sen_np.shape[1] // 100)
         time_series = [
             {
@@ -224,17 +241,14 @@ def predict():
             "badge_color": condition["badge"],
             "recommendation": condition["recommendation"],
             "rec_type": condition["rec_type"],
-            "model_used": "image_sensor.pt",
+            "model_used": "image_sensor.pt (Layer 6 CAM)",
             "metrics": {
                 "test_mae_um": 3.09,
                 "test_rmse_um": 4.29,
                 "test_r2": 0.9938
             },
             "sensor_waveforms": time_series,
-            "gradcam": {
-                "overlay": overlay_b64,
-                "heatmap": heatmap_b64
-            }
+            "gradcam": gradcam_images
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
