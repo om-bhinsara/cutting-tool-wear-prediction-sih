@@ -1,0 +1,42 @@
+{
+  "num_images": 600,
+  "sets": 10,
+  "images_per_set": 60,
+  "image_size": 224,
+  "sensor_channels": [
+    "accel",
+    "acoustic",
+    "Fx",
+    "Fy",
+    "Fz"
+  ],
+  "sensor_points": 512,
+  "metadata": [
+    "Vc",
+    "n",
+    "fz",
+    "Vf",
+    "Ae",
+    "Ap",
+    "material"
+  ],
+  "target": "wear_um",
+  "train_sets": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "val_sets": [
+    7,
+    8
+  ],
+  "test_sets": [
+    9,
+    10
+  ],
+  "physical_configuration": "IDENTICAL_REFERENCE_IMAGE_FOR_ALL_10_SETS",
+  "warning": "Synthetic benchmark only; not real measured MATWI performance."
+}
