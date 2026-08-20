@@ -18,11 +18,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source code, checkpoints, and Flask application
+# Copy source code and Flask application
 COPY src/ ./src/
-COPY outputs/ ./outputs/
-COPY checkpoints/ ./checkpoints/ 2>/dev/null || true
 COPY app.py .
+
+# Create mount points for model artifacts (provide via bind-mount / volume at runtime)
+RUN mkdir -p /app/outputs /app/checkpoints
 
 EXPOSE 5000
 

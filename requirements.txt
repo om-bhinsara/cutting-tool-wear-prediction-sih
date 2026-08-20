@@ -7,3 +7,17 @@ flask-cors
 werkzeug
 pyjwt
 requests
+pandas
+scikit-learn
+torchvision
+Pillow
+opencv-python
+matplotlib
+seaborn
+plotly
+grad-cam
+streamlit
+tqdm
+PyYAML
+ipykernel
+pathlib
