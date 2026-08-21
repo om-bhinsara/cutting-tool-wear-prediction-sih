@@ -225,6 +225,138 @@ ToolWear.AI aims to provide this intelligence through AI-based wear estimation.
 
 ---
 
+# 🖥️ Visual Preview
+
+> A quick look at the ToolWear.AI operator experience before diving into the technical architecture.
+
+## 1. Authentication
+
+<p align="center">
+  <img src="docs/screenshots/login.png" alt="ToolWear.AI Authentication" width="900">
+</p>
+
+The authentication screen is the entry point to the ToolWear.AI application.
+
+## 2. Live Dashboard
+
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="ToolWear.AI Live Dashboard" width="900">
+</p>
+
+The main dashboard is the primary workspace for tool-wear inference, health assessment, remaining cuts, and maintenance guidance.
+
+## 3. Explainable AI
+
+<p align="center">
+  <img src="docs/screenshots/explainable-ai.png" alt="ToolWear.AI Explainable AI" width="900">
+</p>
+
+The Explainable AI view combines multimodal agreement, Grad-CAM heatmaps, attention overlays, and the original optical micrograph.
+
+## 4. Wear Trajectory & RUL
+
+<p align="center">
+  <img src="docs/screenshots/wear-rul.png" alt="ToolWear.AI Wear Trajectory and RUL" width="900">
+</p>
+
+The wear trajectory view tracks degradation across machining passes and supports remaining-life analysis, thresholds, health index, and CSV export.
+
+## 5. Sensor Quality
+
+<p align="center">
+  <img src="docs/screenshots/sensor-quality.png" alt="ToolWear.AI Sensor Quality Monitoring" width="900">
+</p>
+
+The sensor-quality view monitors telemetry health, signal quality, SNR information, and the five machining-signal channels.
+
+---
+
+# 🏗️ System Architecture
+
+```mermaid
+flowchart TB
+
+    A["CNC Machining Process"]
+
+    A --> B["Tool Edge Image"]
+    A --> C["Machining Sensor Signals"]
+    A --> D["Machining Parameters"]
+
+    B --> E["Image Preprocessing"]
+    C --> F["Signal Processing"]
+    D --> G["Metadata Processing"]
+
+    E --> H["CNN Image Encoder"]
+    F --> I["1D-CNN Sensor Encoder"]
+    G --> J["Metadata Encoder"]
+
+    H --> K["Multimodal Feature Fusion"]
+    I --> K
+    J --> K
+
+    K --> L["Regression Head"]
+
+    L --> M["Predicted Flank Wear"]
+
+    M --> N["Tool Health Score"]
+    M --> O["Wear Stage"]
+    M --> P["Remaining Useful Life"]
+    M --> Q["Maintenance Recommendation"]
+
+    H --> R["Grad-CAM"]
+    I --> S["Sensor Analysis"]
+
+    R --> T["Explainable AI"]
+    S --> T
+
+    M --> U["Flask REST API"]
+    U --> V["React Frontend"]
+```
+
+---
+
+# 🔄 End-to-End Workflow
+
+```mermaid
+flowchart LR
+
+    A["Raw Data"] --> B["Preprocessing"]
+
+    B --> C["Image"]
+    B --> D["Sensors"]
+    B --> E["Metadata"]
+
+    C --> F["CNN"]
+    D --> G["1D-CNN"]
+    E --> H["MLP / Metadata Encoder"]
+
+    F --> I["Feature Fusion"]
+    G --> I
+    H --> I
+
+    I --> J["Regression Head"]
+
+    J --> K["Wear Prediction"]
+
+    K --> L["Health Score"]
+    K --> M["RUL"]
+    K --> N["Maintenance Action"]
+    K --> O["Wear Trajectory"]
+
+    F --> P["Grad-CAM"]
+    G --> Q["Signal Analysis"]
+
+    P --> R["Explainability"]
+    Q --> R
+
+    K --> S["REST API"]
+    S --> T["React Dashboard"]
+```
+
+---
+
+---
+
 # 💡 Proposed Solution
 
 ToolWear.AI uses a **multimodal deep-learning architecture**.
@@ -312,89 +444,9 @@ Combining these sources creates a richer representation of tool condition.
 
 ---
 
-# 🏗️ System Architecture
 
-```mermaid
-flowchart TB
 
-    A["CNC Machining Process"]
 
-    A --> B["Tool Edge Image"]
-    A --> C["Machining Sensor Signals"]
-    A --> D["Machining Parameters"]
-
-    B --> E["Image Preprocessing"]
-    C --> F["Signal Processing"]
-    D --> G["Metadata Processing"]
-
-    E --> H["CNN Image Encoder"]
-    F --> I["1D-CNN Sensor Encoder"]
-    G --> J["Metadata Encoder"]
-
-    H --> K["Multimodal Feature Fusion"]
-    I --> K
-    J --> K
-
-    K --> L["Regression Head"]
-
-    L --> M["Predicted Flank Wear"]
-
-    M --> N["Tool Health Score"]
-    M --> O["Wear Stage"]
-    M --> P["Remaining Useful Life"]
-    M --> Q["Maintenance Recommendation"]
-
-    H --> R["Grad-CAM"]
-    I --> S["Sensor Analysis"]
-
-    R --> T["Explainable AI"]
-    S --> T
-
-    M --> U["Flask REST API"]
-    U --> V["React Frontend"]
-```
-
----
-
-# 🔄 End-to-End Workflow
-
-```mermaid
-flowchart LR
-
-    A["Raw Data"] --> B["Preprocessing"]
-
-    B --> C["Image"]
-    B --> D["Sensors"]
-    B --> E["Metadata"]
-
-    C --> F["CNN"]
-    D --> G["1D-CNN"]
-    E --> H["MLP / Metadata Encoder"]
-
-    F --> I["Feature Fusion"]
-    G --> I
-    H --> I
-
-    I --> J["Regression Head"]
-
-    J --> K["Wear Prediction"]
-
-    K --> L["Health Score"]
-    K --> M["RUL"]
-    K --> N["Maintenance Action"]
-    K --> O["Wear Trajectory"]
-
-    F --> P["Grad-CAM"]
-    G --> Q["Signal Analysis"]
-
-    P --> R["Explainability"]
-    Q --> R
-
-    K --> S["REST API"]
-    S --> T["React Dashboard"]
-```
-
----
 
 # 🔬 Multimodal AI Pipeline
 
@@ -894,131 +946,7 @@ CNC Floor Operator
 
 ---
 
-# 🖥️ User Interface
 
-ToolWear.AI provides an industrial-style web dashboard designed for CNC operators and engineering users.
-
-The interface contains:
-
-- Live Dashboard
-- Explainable AI & CAM
-- Wear Trajectory / RUL
-- Sensor Quality
-- Machine Specifications
-- Authentication
-- Operator information
-- Logout
-
----
-
-# 📊 Live Dashboard
-
-![ToolWear.AI Live Dashboard](docs/screenshots/dashboard.png)
-
-The Live Dashboard provides the central inference workflow.
-
-### Main components
-
-#### Inference Inputs
-
-Users can provide:
-
-- Tool edge image
-- Sensor signal
-- Machining pass index
-
-#### Real-Time Wear Assessment
-
-The interface displays:
-
-- Predicted flank wear
-- Health status
-- Maintenance action
-- Model information
-- Test R²
-- Model MAE
-- Fusion pipeline
-
-#### Tool Health Tracker
-
-The dashboard also provides:
-
-- Current wear
-- Tool-life consumed
-- Estimated remaining cuts
-- Health-stage classification
-- Prescriptive action
-
----
-
-# 🔬 Explainable AI Interface
-
-![ToolWear.AI Explainable AI](docs/screenshots/explainable-ai.png)
-
-The Explainable AI page provides:
-
-### Multimodal Agreement
-
-Shows whether image and sensor streams provide consistent evidence.
-
-### Grad-CAM Heatmap
-
-Visualizes CNN activation.
-
-### Attention Overlay
-
-Highlights the important visual regions.
-
-### Raw Optical Micrograph
-
-Provides the original input image.
-
-This allows users to compare:
-
-```text
-Original Image
-      +
-Grad-CAM
-      +
-Attention Overlay
-```
-
----
-
-# 📈 Wear Trajectory Interface
-
-![ToolWear.AI Wear Progression](docs/screenshots/wear-rul.png)
-
-The Wear Trajectory page provides a visual representation of degradation.
-
-It includes:
-
-- Wear curve
-- Machining pass index
-- Moderate wear threshold
-- Critical failure threshold
-- Recorded machining log
-- Health index
-- Timestamp
-- CSV export
-- Reset functionality
-
----
-
-# 📡 Sensor Quality Interface
-
-![ToolWear.AI Sensor Quality](docs/screenshots/sensor-quality.png)
-
-The Sensor Quality page displays:
-
-- Overall telemetry health
-- Signal quality status
-- SNR information
-- Five sensor channels
-- High-frequency signal behavior
-- Signal validation status
-
----
 
 
 
@@ -2127,55 +2055,7 @@ The entire project can be summarized as:
                        OPERATOR / ENGINEER
 ```
 
----
 
-# 🧠 ToolWear.AI Architecture in One View
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                        TOOLWEAR.AI                          │
-│                                                             │
-│        CNC Cutting Tool Wear Intelligence Platform          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  INPUTS                                                     │
-│                                                             │
-│  🖼 Tool Image      📡 Sensors       ⚙️ Parameters          │
-│       │                 │                  │                │
-│       ▼                 ▼                  ▼                │
-│     CNN              1D-CNN          Metadata Encoder       │
-│       │                 │                  │                │
-│       └─────────────────┼──────────────────┘                │
-│                         ▼                                   │
-│                 MULTIMODAL FUSION                           │
-│                         │                                   │
-│                         ▼                                   │
-│                  WEAR REGRESSION                            │
-│                         │                                   │
-│          ┌──────────────┼───────────────┐                   │
-│          ▼              ▼               ▼                   │
-│       Wear µm        Health Score       RUL                 │
-│          │              │               │                   │
-│          └──────────────┼───────────────┘                   │
-│                         ▼                                   │
-│                 MAINTENANCE ACTION                          │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  EXPLAINABILITY                                             │
-│                                                             │
-│        Grad-CAM + Attention + Cross-Stream Verification     │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  APPLICATION                                                │
-│                                                             │
-│     React + Vite + Bootstrap + Flask REST API              │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
 
 # 📚 Technology Summary
 
@@ -2234,108 +2114,11 @@ Version Control
 └── GitHub
 ```
 
----
-
-# 🤝 Contributing
-
-Contributions, improvements and research extensions are welcome.
-
-## Step 1 — Fork the Repository
-
-Create your own fork of the project.
-
-## Step 2 — Clone
-
-```bash
-git clone https://github.com/om-bhinsara/cutting-tool-wear-prediction-sih.git
-```
-
-## Step 3 — Create a Branch
-
-```bash
-git checkout -b feature/your-feature
-```
-
-## Step 4 — Make Changes
-
-Implement and test your changes.
-
-## Step 5 — Commit
-
-```bash
-git add .
-
-git commit -m "Add: your feature"
-```
-
-## Step 6 — Push
-
-```bash
-git push origin feature/your-feature
-```
-
-## Step 7 — Pull Request
-
-Open a Pull Request and describe:
-
-- What was changed
-- Why it was changed
-- How it was tested
-- Any limitations
-
----
-
-# 🐛 Issues & Suggestions
-
-If you find a problem or have an improvement idea, please open an issue in the GitHub repository.
-
-Useful issue information includes:
-
-```text
-Problem
-Expected Behavior
-Actual Behavior
-Steps to Reproduce
-Screenshots
-Environment
-```
-
----
-
 # 📜 License
 
 No specific open-source license has been declared in this README.
 
 If the project is released under a license such as MIT, Apache-2.0, or another license, add the corresponding license file and update this section.
-
----
-
-# 🙏 Acknowledgements
-
-This project brings together concepts from:
-
-- Artificial Intelligence
-- Deep Learning
-- Computer Vision
-- Signal Processing
-- Predictive Maintenance
-- Prognostics & Health Management
-- CNC Manufacturing
-- Industrial Analytics
-
-Special thanks to everyone involved in the development, testing, experimentation and documentation of ToolWear.AI.
-
----
-
-# ⭐ Support the Project
-
-If you find **ToolWear.AI** interesting:
-
-⭐ Star the repository  
-🍴 Fork the project  
-🐛 Report issues  
-💡 Suggest improvements  
-📢 Share the project
 
 ---
 
