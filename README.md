@@ -227,20 +227,47 @@ ToolWear.AI aims to provide this intelligence through AI-based wear estimation.
 
 # 🖥️ Visual Preview
 
-## Live Dashboard
-![ToolWear.AI Live Dashboard](docs/screenshots/dashboard.png)
+> A quick look at the ToolWear.AI operator experience before diving into the technical architecture.
 
-## Explainable AI
-![ToolWear.AI Explainable AI](docs/screenshots/explainable-ai.png)
+## 1. Authentication
 
-## Wear Trajectory & RUL
-![ToolWear.AI Wear Progression](docs/screenshots/wear-rul.png)
+<p align="center">
+  <img src="docs/screenshots/login.png" alt="ToolWear.AI Authentication" width="900">
+</p>
 
-## Sensor Quality
-![ToolWear.AI Sensor Quality](docs/screenshots/sensor-quality.png)
+The authentication screen is the entry point to the ToolWear.AI application.
 
-## Authentication
-![ToolWear.AI Authentication](docs/screenshots/login.png)
+## 2. Live Dashboard
+
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="ToolWear.AI Live Dashboard" width="900">
+</p>
+
+The main dashboard is the primary workspace for tool-wear inference, health assessment, remaining cuts, and maintenance guidance.
+
+## 3. Explainable AI
+
+<p align="center">
+  <img src="docs/screenshots/explainable-ai.png" alt="ToolWear.AI Explainable AI" width="900">
+</p>
+
+The Explainable AI view combines multimodal agreement, Grad-CAM heatmaps, attention overlays, and the original optical micrograph.
+
+## 4. Wear Trajectory & RUL
+
+<p align="center">
+  <img src="docs/screenshots/wear-rul.png" alt="ToolWear.AI Wear Trajectory and RUL" width="900">
+</p>
+
+The wear trajectory view tracks degradation across machining passes and supports remaining-life analysis, thresholds, health index, and CSV export.
+
+## 5. Sensor Quality
+
+<p align="center">
+  <img src="docs/screenshots/sensor-quality.png" alt="ToolWear.AI Sensor Quality Monitoring" width="900">
+</p>
+
+The sensor-quality view monitors telemetry health, signal quality, SNR information, and the five machining-signal channels.
 
 ---
 
