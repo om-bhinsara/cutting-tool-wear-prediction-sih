@@ -2073,6 +2073,6 @@ Multimodal AI for Intelligent CNC Tool-Wear Prognostics
 
 <br><br>
 
-Made with ❤️ using React • Flask • PyTorch • CNN • 1D-CNN • Multimodal AI
+Made with using React • Flask • PyTorch • CNN • 1D-CNN • Multimodal AI
 
 </p>
