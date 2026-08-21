@@ -271,8 +271,6 @@ The sensor-quality view monitors telemetry health, signal quality, SNR informati
 
 ---
 
-# 🏗️ Core Architecture
-
 # 🏗️ System Architecture
 
 ```mermaid
