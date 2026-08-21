@@ -225,6 +225,113 @@ ToolWear.AI aims to provide this intelligence through AI-based wear estimation.
 
 ---
 
+# 🖥️ Visual Preview
+
+## Live Dashboard
+![ToolWear.AI Live Dashboard](docs/screenshots/dashboard.png)
+
+## Explainable AI
+![ToolWear.AI Explainable AI](docs/screenshots/explainable-ai.png)
+
+## Wear Trajectory & RUL
+![ToolWear.AI Wear Progression](docs/screenshots/wear-rul.png)
+
+## Sensor Quality
+![ToolWear.AI Sensor Quality](docs/screenshots/sensor-quality.png)
+
+## Authentication
+![ToolWear.AI Authentication](docs/screenshots/login.png)
+
+---
+
+# 🏗️ Core Architecture
+
+# 🏗️ System Architecture
+
+```mermaid
+flowchart TB
+
+    A["CNC Machining Process"]
+
+    A --> B["Tool Edge Image"]
+    A --> C["Machining Sensor Signals"]
+    A --> D["Machining Parameters"]
+
+    B --> E["Image Preprocessing"]
+    C --> F["Signal Processing"]
+    D --> G["Metadata Processing"]
+
+    E --> H["CNN Image Encoder"]
+    F --> I["1D-CNN Sensor Encoder"]
+    G --> J["Metadata Encoder"]
+
+    H --> K["Multimodal Feature Fusion"]
+    I --> K
+    J --> K
+
+    K --> L["Regression Head"]
+
+    L --> M["Predicted Flank Wear"]
+
+    M --> N["Tool Health Score"]
+    M --> O["Wear Stage"]
+    M --> P["Remaining Useful Life"]
+    M --> Q["Maintenance Recommendation"]
+
+    H --> R["Grad-CAM"]
+    I --> S["Sensor Analysis"]
+
+    R --> T["Explainable AI"]
+    S --> T
+
+    M --> U["Flask REST API"]
+    U --> V["React Frontend"]
+```
+
+---
+
+# 🔄 End-to-End Workflow
+
+```mermaid
+flowchart LR
+
+    A["Raw Data"] --> B["Preprocessing"]
+
+    B --> C["Image"]
+    B --> D["Sensors"]
+    B --> E["Metadata"]
+
+    C --> F["CNN"]
+    D --> G["1D-CNN"]
+    E --> H["MLP / Metadata Encoder"]
+
+    F --> I["Feature Fusion"]
+    G --> I
+    H --> I
+
+    I --> J["Regression Head"]
+
+    J --> K["Wear Prediction"]
+
+    K --> L["Health Score"]
+    K --> M["RUL"]
+    K --> N["Maintenance Action"]
+    K --> O["Wear Trajectory"]
+
+    F --> P["Grad-CAM"]
+    G --> Q["Signal Analysis"]
+
+    P --> R["Explainability"]
+    Q --> R
+
+    K --> S["REST API"]
+    S --> T["React Dashboard"]
+```
+
+---
+
+---
+
 # 💡 Proposed Solution
 
 ToolWear.AI uses a **multimodal deep-learning architecture**.
@@ -312,89 +419,9 @@ Combining these sources creates a richer representation of tool condition.
 
 ---
 
-# 🏗️ System Architecture
 
-```mermaid
-flowchart TB
 
-    A["CNC Machining Process"]
 
-    A --> B["Tool Edge Image"]
-    A --> C["Machining Sensor Signals"]
-    A --> D["Machining Parameters"]
-
-    B --> E["Image Preprocessing"]
-    C --> F["Signal Processing"]
-    D --> G["Metadata Processing"]
-
-    E --> H["CNN Image Encoder"]
-    F --> I["1D-CNN Sensor Encoder"]
-    G --> J["Metadata Encoder"]
-
-    H --> K["Multimodal Feature Fusion"]
-    I --> K
-    J --> K
-
-    K --> L["Regression Head"]
-
-    L --> M["Predicted Flank Wear"]
-
-    M --> N["Tool Health Score"]
-    M --> O["Wear Stage"]
-    M --> P["Remaining Useful Life"]
-    M --> Q["Maintenance Recommendation"]
-
-    H --> R["Grad-CAM"]
-    I --> S["Sensor Analysis"]
-
-    R --> T["Explainable AI"]
-    S --> T
-
-    M --> U["Flask REST API"]
-    U --> V["React Frontend"]
-```
-
----
-
-# 🔄 End-to-End Workflow
-
-```mermaid
-flowchart LR
-
-    A["Raw Data"] --> B["Preprocessing"]
-
-    B --> C["Image"]
-    B --> D["Sensors"]
-    B --> E["Metadata"]
-
-    C --> F["CNN"]
-    D --> G["1D-CNN"]
-    E --> H["MLP / Metadata Encoder"]
-
-    F --> I["Feature Fusion"]
-    G --> I
-    H --> I
-
-    I --> J["Regression Head"]
-
-    J --> K["Wear Prediction"]
-
-    K --> L["Health Score"]
-    K --> M["RUL"]
-    K --> N["Maintenance Action"]
-    K --> O["Wear Trajectory"]
-
-    F --> P["Grad-CAM"]
-    G --> Q["Signal Analysis"]
-
-    P --> R["Explainability"]
-    Q --> R
-
-    K --> S["REST API"]
-    S --> T["React Dashboard"]
-```
-
----
 
 # 🔬 Multimodal AI Pipeline
 
@@ -894,131 +921,7 @@ CNC Floor Operator
 
 ---
 
-# 🖥️ User Interface
 
-ToolWear.AI provides an industrial-style web dashboard designed for CNC operators and engineering users.
-
-The interface contains:
-
-- Live Dashboard
-- Explainable AI & CAM
-- Wear Trajectory / RUL
-- Sensor Quality
-- Machine Specifications
-- Authentication
-- Operator information
-- Logout
-
----
-
-# 📊 Live Dashboard
-
-![ToolWear.AI Live Dashboard](docs/screenshots/dashboard.png)
-
-The Live Dashboard provides the central inference workflow.
-
-### Main components
-
-#### Inference Inputs
-
-Users can provide:
-
-- Tool edge image
-- Sensor signal
-- Machining pass index
-
-#### Real-Time Wear Assessment
-
-The interface displays:
-
-- Predicted flank wear
-- Health status
-- Maintenance action
-- Model information
-- Test R²
-- Model MAE
-- Fusion pipeline
-
-#### Tool Health Tracker
-
-The dashboard also provides:
-
-- Current wear
-- Tool-life consumed
-- Estimated remaining cuts
-- Health-stage classification
-- Prescriptive action
-
----
-
-# 🔬 Explainable AI Interface
-
-![ToolWear.AI Explainable AI](docs/screenshots/explainable-ai.png)
-
-The Explainable AI page provides:
-
-### Multimodal Agreement
-
-Shows whether image and sensor streams provide consistent evidence.
-
-### Grad-CAM Heatmap
-
-Visualizes CNN activation.
-
-### Attention Overlay
-
-Highlights the important visual regions.
-
-### Raw Optical Micrograph
-
-Provides the original input image.
-
-This allows users to compare:
-
-```text
-Original Image
-      +
-Grad-CAM
-      +
-Attention Overlay
-```
-
----
-
-# 📈 Wear Trajectory Interface
-
-![ToolWear.AI Wear Progression](docs/screenshots/wear-rul.png)
-
-The Wear Trajectory page provides a visual representation of degradation.
-
-It includes:
-
-- Wear curve
-- Machining pass index
-- Moderate wear threshold
-- Critical failure threshold
-- Recorded machining log
-- Health index
-- Timestamp
-- CSV export
-- Reset functionality
-
----
-
-# 📡 Sensor Quality Interface
-
-![ToolWear.AI Sensor Quality](docs/screenshots/sensor-quality.png)
-
-The Sensor Quality page displays:
-
-- Overall telemetry health
-- Signal quality status
-- SNR information
-- Five sensor channels
-- High-frequency signal behavior
-- Signal validation status
-
----
 
 
 
