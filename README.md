@@ -85,14 +85,10 @@
 - [Project Workflow](#-project-workflow)
 - [Key Features](#-key-features)
 - [Engineering Challenges](#-engineering-challenges)
-- [Limitations](#-limitations)
 - [Future Scope](#-future-scope)
 - [Project Status](#-project-status)
 - [Demo](#-demo)
 - [Repository](#-repository)
-- [Contributing](#-contributing)
-- [License](#-license)
-- [Acknowledgements](#-acknowledgements)
 
 ---
 
@@ -1849,18 +1845,6 @@ The project therefore includes:
 
 ---
 
-# ⚠️ Limitations
-
-ToolWear.AI is currently a research/prototype system and should be evaluated within the scope of its benchmark and implementation environment.
-
-## Controlled Dataset
-
-The documented evaluation is based on a controlled benchmark.
-
-## Real-World Validation
-
-Additional real-world CNC validation is required.
-
 ## Domain Generalization
 
 Performance may change across:
@@ -2114,13 +2098,6 @@ Version Control
 └── GitHub
 ```
 
-# 📜 License
-
-No specific open-source license has been declared in this README.
-
-If the project is released under a license such as MIT, Apache-2.0, or another license, add the corresponding license file and update this section.
-
----
 
 # ⚙️ Final Summary
 
