@@ -2127,55 +2127,7 @@ The entire project can be summarized as:
                        OPERATOR / ENGINEER
 ```
 
----
 
-# 🧠 ToolWear.AI Architecture in One View
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                        TOOLWEAR.AI                          │
-│                                                             │
-│        CNC Cutting Tool Wear Intelligence Platform          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  INPUTS                                                     │
-│                                                             │
-│  🖼 Tool Image      📡 Sensors       ⚙️ Parameters          │
-│       │                 │                  │                │
-│       ▼                 ▼                  ▼                │
-│     CNN              1D-CNN          Metadata Encoder       │
-│       │                 │                  │                │
-│       └─────────────────┼──────────────────┘                │
-│                         ▼                                   │
-│                 MULTIMODAL FUSION                           │
-│                         │                                   │
-│                         ▼                                   │
-│                  WEAR REGRESSION                            │
-│                         │                                   │
-│          ┌──────────────┼───────────────┐                   │
-│          ▼              ▼               ▼                   │
-│       Wear µm        Health Score       RUL                 │
-│          │              │               │                   │
-│          └──────────────┼───────────────┘                   │
-│                         ▼                                   │
-│                 MAINTENANCE ACTION                          │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  EXPLAINABILITY                                             │
-│                                                             │
-│        Grad-CAM + Attention + Cross-Stream Verification     │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  APPLICATION                                                │
-│                                                             │
-│     React + Vite + Bootstrap + Flask REST API              │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
 
 # 📚 Technology Summary
 
@@ -2307,35 +2259,6 @@ Environment
 No specific open-source license has been declared in this README.
 
 If the project is released under a license such as MIT, Apache-2.0, or another license, add the corresponding license file and update this section.
-
----
-
-# 🙏 Acknowledgements
-
-This project brings together concepts from:
-
-- Artificial Intelligence
-- Deep Learning
-- Computer Vision
-- Signal Processing
-- Predictive Maintenance
-- Prognostics & Health Management
-- CNC Manufacturing
-- Industrial Analytics
-
-Special thanks to everyone involved in the development, testing, experimentation and documentation of ToolWear.AI.
-
----
-
-# ⭐ Support the Project
-
-If you find **ToolWear.AI** interesting:
-
-⭐ Star the repository  
-🍴 Fork the project  
-🐛 Report issues  
-💡 Suggest improvements  
-📢 Share the project
 
 ---
 
