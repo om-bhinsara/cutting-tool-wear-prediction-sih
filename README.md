@@ -85,14 +85,9 @@
 - [Project Workflow](#-project-workflow)
 - [Key Features](#-key-features)
 - [Engineering Challenges](#-engineering-challenges)
-- [Limitations](#-limitations)
 - [Future Scope](#-future-scope)
 - [Project Status](#-project-status)
 - [Demo](#-demo)
-- [Repository](#-repository)
-- [Contributing](#-contributing)
-- [License](#-license)
-- [Acknowledgements](#-acknowledgements)
 
 ---
 
@@ -1849,18 +1844,6 @@ The project therefore includes:
 
 ---
 
-# ⚠️ Limitations
-
-ToolWear.AI is currently a research/prototype system and should be evaluated within the scope of its benchmark and implementation environment.
-
-## Controlled Dataset
-
-The documented evaluation is based on a controlled benchmark.
-
-## Real-World Validation
-
-Additional real-world CNC validation is required.
-
 ## Domain Generalization
 
 Performance may change across:
@@ -1988,17 +1971,6 @@ Watch the ToolWear.AI demonstration on YouTube:
 
 https://youtu.be/e6yPnD5TcGQ?si=Bip5dLqUV19i1lYC
 
----
-
-# 💻 Repository
-
-The complete source code is available on GitHub:
-
-**ToolWear.AI GitHub Repository**
-
-https://github.com/om-bhinsara/cutting-tool-wear-prediction-sih
-
----
 
 # 🗺️ Complete Project Pipeline
 
@@ -2054,73 +2026,6 @@ The entire project can be summarized as:
                                 ▼
                        OPERATOR / ENGINEER
 ```
-
-
-
-# 📚 Technology Summary
-
-```text
-Frontend
-├── React.js
-├── Vite
-├── Bootstrap
-├── HTML
-├── CSS
-└── JavaScript
-
-Backend
-├── Python
-└── Flask
-
-Deep Learning
-├── PyTorch
-├── CNN
-├── 1D-CNN
-└── Multimodal Feature Fusion
-
-Machine Learning
-├── Regression
-├── MAE
-├── RMSE
-└── R²
-
-Computer Vision
-├── PIL / Pillow
-├── Image Preprocessing
-├── Edge-Based Analysis
-├── Crop-Based Analysis
-└── Grad-CAM
-
-Sensor Processing
-├── NumPy
-├── Pandas
-├── Acceleration
-├── Acoustic Emission
-├── Fx
-├── Fy
-└── Fz
-
-API
-├── REST
-└── JSON
-
-Deployment
-├── Docker
-├── Docker Compose
-├── Nginx
-└── PyTorch Model Inference
-
-Version Control
-└── GitHub
-```
-
-# 📜 License
-
-No specific open-source license has been declared in this README.
-
-If the project is released under a license such as MIT, Apache-2.0, or another license, add the corresponding license file and update this section.
-
----
 
 # ⚙️ Final Summary
 
