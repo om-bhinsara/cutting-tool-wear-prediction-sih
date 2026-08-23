@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --cad-primary: #0284c7;
+  --cad-dark: #0f172a;
+  --cad-border: #cbd5e1;
+  --cad-bg: #f8fafc;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--cad-bg);
+  color: var(--cad-dark);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* Pure CSS CAD Background Grid — Completely trapped behind all components */
+.live-cad-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: -1 !important;
+  background-color: #f8fafc;
+  background-image: 
+    linear-gradient(to right, rgba(203, 213, 225, 0.4) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(203, 213, 225, 0.4) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* CAD Technical Container Panels */
+.cad-panel {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid var(--cad-border);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.cad-panel-header {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--cad-border);
+  background-color: #f8fafc;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+/* Corner Crosshairs */
+.crosshair {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: #94a3b8;
+  pointer-events: none;
+}
+
+.ch-tl { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }
+.ch-tr { top: -1px; right: -1px; border-top: 2px solid; border-right: 2px solid; }
+.ch-bl { bottom: -1px; left: -1px; border-bottom: 2px solid; border-left: 2px solid; }
+.ch-br { bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; }
+
+/* Custom Form Controls */
+.cad-form-control {
+  border: 1px solid var(--cad-border);
+  font-size: 13px;
+}
+
+.cad-form-control:focus {
+  border-color: var(--cad-primary);
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
