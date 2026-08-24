@@ -1,100 +1,23 @@
-# ==============================
-# Python
-# ==============================
+# Python & Virtual Environments
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Virtual environments
-.venv/
 venv/
 env/
-ENV/
-cenv/
+.env
 
-# ==============================
-# Jupyter
-# ==============================
-.ipynb_checkpoints/
+# Model Checkpoints & Large Data (Upload to Releases/Drive instead if >100MB)
+*.npy
+*.pt
+outputs/checkpoints/
 
-# ==============================
-# IDE
-# ==============================
-.vscode/
-.idea/
+# Node & Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
 
-# ==============================
-# OS
-# ==============================
+# Database & System
+*.db
+*.sqlite3
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# ==============================
-# Python cache / testing
-# ==============================
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-
-# ==============================
-# Environment / secrets
-# ==============================
-.env
-.env.*
-!.env.example
-
-# ==============================
-# Models / checkpoints
-# ==============================
-checkpoints/
-*.pt
-*.pth
-*.ckpt
-*.onnx
-
-# ==============================
-# Training outputs
-# ==============================
-results/
-runs/
-wandb/
-mlruns/
-
-outputs
-
-# ==============================
-# Generated dataset
-# ==============================
-images/
-edge_images/
-sensors/
-previews/
-
-# ==============================
-# Dataset files
-# ==============================
-*.npy
-*.npz
-*.parquet
-*.zip
-*.7z
-*.rar
-*.tar
-*.tar.gz
-
-# ==============================
-# Generated visualizations
-# ==============================
-*_progression.jpg
-ALL_10_SETS_PROGRESS.jpg
-verify_crop.png
-verify_sensor.png
-
-labels.csv
-
-processed_index.csv
-
-data

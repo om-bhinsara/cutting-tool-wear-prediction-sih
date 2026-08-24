@@ -1,18 +1,32 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: toolwear_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: cnc_password_123
+      POSTGRES_DB: toolwear_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: toolwear_backend
     restart: always
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://postgres:cnc_password_123@db:5432/toolwear_db
+      - JWT_SECRET=cnc-industrial-phm-jwt-secret-key
     ports:
       - "5000:5000"
-    environment:
-      - PYTHONUNBUFFERED=1
-    volumes:
-      - ./outputs:/app/outputs:ro
 
   frontend:
     build:
@@ -20,7 +34,10 @@ services:
       dockerfile: Dockerfile
     container_name: toolwear_frontend
     restart: always
-    ports:
-      - "5173:80"
     depends_on:
       - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  postgres_data:
