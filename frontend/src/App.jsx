@@ -22,7 +22,7 @@ import ExplainableAI from "./pages/ExplainableAI";
 import Progression from "./pages/Progression";
 import Telemetry from "./pages/Telemetry";
 import Specs from "./pages/Specs";
-import Profile from "./pages/profile";
+import Profile from "./pages/Profile";
 import Guide from "./pages/Guide";
 
 import { runWearPrediction } from "./services/api";
