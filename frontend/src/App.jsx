@@ -35,6 +35,7 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Authentication State
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('phm_auth_user');
@@ -44,7 +45,10 @@ export default function App() {
     }
   });
 
-  const [authMode, setAuthMode] = useState('signin');
+  const [authMode, setAuthMode] = useState('signin'); // 'signin' or 'signup'
+  const [step, setStep] = useState('credentials'); // 'credentials' or 'otp'
+  const [otpCode, setOtpCode] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
   const [authForm, setAuthForm] = useState({
     name: '',
     email: '',
@@ -54,6 +58,7 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
+  // Application Inputs & State
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [sensorFile, setSensorFile] = useState(null);
@@ -74,36 +79,43 @@ export default function App() {
     }
   }, [currentUser]);
 
-  const handleAuthSubmit = async (e) => {
+  // Step 1: Send Credentials & Trigger Real Email OTP
+  const handleRequestOtp = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    setStatusMessage('');
+    setAuthLoading(true);
+
+    try {
+      const res = await axios.post(`${API_BASE}/api/auth/send-otp`, {
+        ...authForm,
+        mode: authMode
+      });
+      setStatusMessage(res.data.message || `Verification code sent to ${authForm.email}`);
+      setStep('otp');
+    } catch (err) {
+      setAuthError(err.response?.data?.error || 'Failed to send OTP. Ensure backend SMTP is configured.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // Step 2: Validate OTP Code from Email
+  const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setAuthError('');
     setAuthLoading(true);
 
-    const endpoint = authMode === 'signup' ? `${API_BASE}/api/signup` : `${API_BASE}/api/signin`;
-
     try {
-      const res = await axios.post(endpoint, authForm);
+      const res = await axios.post(`${API_BASE}/api/auth/verify-otp`, {
+        email: authForm.email,
+        otp: otpCode
+      });
       setCurrentUser(res.data.user);
       localStorage.setItem('phm_jwt_token', res.data.token);
       navigate('/dashboard');
     } catch (err) {
-      if (authMode === 'signin') {
-        const demoUser = {
-          email: authForm.email || 'operator@cnc.com',
-          name: authForm.name || 'CNC Operator',
-          role: authForm.role || 'CNC Floor Operator'
-        };
-        setCurrentUser(demoUser);
-        navigate('/dashboard');
-      } else {
-        const newUser = {
-          email: authForm.email,
-          name: authForm.name || 'Shop User',
-          role: authForm.role
-        };
-        setCurrentUser(newUser);
-        navigate('/dashboard');
-      }
+      setAuthError(err.response?.data?.error || 'Invalid or expired OTP code.');
     } finally {
       setAuthLoading(false);
     }
@@ -115,6 +127,8 @@ export default function App() {
       setResult(null);
       setProgressionHistory([]);
       setMachiningCycle(1);
+      setStep('credentials');
+      setOtpCode('');
       localStorage.removeItem('phm_auth_user');
       localStorage.removeItem('phm_jwt_token');
       navigate('/');
@@ -208,6 +222,7 @@ export default function App() {
     a.click();
   };
 
+  // Safe Physics Calculations
   const currentWear = result ? result.wear_um : 0;
   const gaugePercent = result ? Math.min(100, Math.max(0, (currentWear / TOOL_SPECS.FAILURE_LIMIT_UM) * 100)) : 0;
   const lifeConsumedPct = result ? Math.min(100, Math.max(0, (currentWear / TOOL_SPECS.FAILURE_LIMIT_UM) * 100)) : 0;
@@ -227,13 +242,11 @@ export default function App() {
     ? (currentWear >= TOOL_SPECS.FAILURE_LIMIT_UM ? 0 : Math.max(0, Math.round(remainingWearAllowance / dynamicWearRate)))
     : TOOL_SPECS.NOMINAL_TOTAL_CYCLES;
 
-  // Unauthenticated View
+  // Unauthenticated View Gate (Two-Factor Authentication Protected)
   if (!currentUser) {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center position-relative px-3" style={{ background: '#f8fafc' }}>
-        <div className="live-cad-bg">
-          <div className="cad-scanline" />
-        </div>
+        <div className="live-cad-bg" />
 
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -248,105 +261,156 @@ export default function App() {
               <i className="bi bi-shield-lock-fill fs-4"></i>
             </div>
             <h4 className="fw-bold text-dark font-mono mb-1">ToolWear.AI Access Portal</h4>
-            <p className="text-secondary font-mono small mb-0">CNC Prognostics &amp; Health Management (PHM)</p>
+            <p className="text-secondary font-mono small mb-0">Two-Factor Authentication (2FA) Protected</p>
           </div>
 
-          <div className="d-flex bg-light p-1 rounded-2 mb-4 border font-mono small">
-            <button
-              type="button"
-              onClick={() => { setAuthMode('signin'); setAuthError(''); }}
-              className={`btn btn-sm w-50 fw-semibold rounded-1 ${authMode === 'signin' ? 'btn-white text-primary shadow-sm bg-white' : 'text-secondary'}`}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => { setAuthMode('signup'); setAuthError(''); }}
-              className={`btn btn-sm w-50 fw-semibold rounded-1 ${authMode === 'signup' ? 'btn-white text-primary shadow-sm bg-white' : 'text-secondary'}`}
-            >
-              Sign Up
-            </button>
-          </div>
+          {step === 'credentials' ? (
+            <>
+              <div className="d-flex bg-light p-1 rounded-2 mb-4 border font-mono small">
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('signin'); setAuthError(''); }}
+                  className={`btn btn-sm w-50 fw-semibold rounded-1 ${authMode === 'signin' ? 'btn-white text-primary shadow-sm bg-white' : 'text-secondary'}`}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('signup'); setAuthError(''); }}
+                  className={`btn btn-sm w-50 fw-semibold rounded-1 ${authMode === 'signup' ? 'btn-white text-primary shadow-sm bg-white' : 'text-secondary'}`}
+                >
+                  Sign Up
+                </button>
+              </div>
 
-          <form onSubmit={handleAuthSubmit}>
-            {authMode === 'signup' && (
-              <div className="mb-3">
-                <label className="form-label text-dark font-mono small fw-semibold">Operator / Engineer Name</label>
+              <form onSubmit={handleRequestOtp}>
+                {authMode === 'signup' && (
+                  <div className="mb-3">
+                    <label className="form-label text-dark font-mono small fw-semibold">Full Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Mayuresh Dudhat"
+                      value={authForm.name}
+                      onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
+                      className="form-control cad-form-control form-control-sm"
+                    />
+                  </div>
+                )}
+
+                <div className="mb-3">
+                  <label className="form-label text-dark font-mono small fw-semibold">Valid Work Email</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="name@company.com"
+                    value={authForm.email}
+                    onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
+                    className="form-control cad-form-control form-control-sm"
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label text-dark font-mono small fw-semibold">Password</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={authForm.password}
+                    onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                    className="form-control cad-form-control form-control-sm"
+                  />
+                </div>
+
+                {authMode === 'signup' && (
+                  <div className="mb-3">
+                    <label className="form-label text-dark font-mono small fw-semibold">Assigned Role</label>
+                    <select
+                      value={authForm.role}
+                      onChange={(e) => setAuthForm({ ...authForm, role: e.target.value })}
+                      className="form-select cad-form-control form-control-sm font-mono"
+                    >
+                      <option value="CNC Floor Operator">CNC Floor Operator</option>
+                      <option value="Reliability Engineer">Reliability &amp; Maintenance Engineer</option>
+                      <option value="Quality Assurance Manager">Quality Assurance (QA) Manager</option>
+                    </select>
+                  </div>
+                )}
+
+                {authError && (
+                  <div className="alert alert-danger font-mono small py-2 mb-3">
+                    <i className="bi bi-exclamation-triangle me-1"></i>{authError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="btn btn-primary w-100 py-2 font-mono fw-bold d-flex align-items-center justify-content-center gap-2 shadow-sm"
+                >
+                  {authLoading ? (
+                    <span className="spinner-border spinner-border-sm"></span>
+                  ) : (
+                    <>
+                      <i className="bi bi-envelope-check-fill"></i>
+                      Send Verification Code (OTP)
+                    </>
+                  )}
+                </button>
+              </form>
+            </>
+          ) : (
+            <form onSubmit={handleVerifyOtp}>
+              <div className="alert alert-info font-mono small py-2 mb-3">
+                <i className="bi bi-info-circle me-1"></i>
+                {statusMessage || `A 6-digit code has been sent to ${authForm.email}`}
+              </div>
+
+              <div className="mb-4 text-center">
+                <label className="form-label text-dark font-mono small fw-semibold d-block">Enter 6-Digit Email OTP</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Mayuresh Dudhat"
-                  value={authForm.name}
-                  onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
-                  className="form-control cad-form-control form-control-sm"
+                  maxLength="6"
+                  autoFocus
+                  placeholder="123456"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  className="form-control cad-form-control form-control-lg text-center font-mono fw-bold"
+                  style={{ letterSpacing: '8px', fontSize: '24px' }}
                 />
               </div>
-            )}
 
-            <div className="mb-3">
-              <label className="form-label text-dark font-mono small fw-semibold">Work Email</label>
-              <input
-                type="email"
-                required
-                placeholder="operator@cnc.com"
-                value={authForm.email}
-                onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
-                className="form-control cad-form-control form-control-sm"
-              />
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label text-dark font-mono small fw-semibold">Password</label>
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={authForm.password}
-                onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
-                className="form-control cad-form-control form-control-sm"
-              />
-            </div>
-
-            {authMode === 'signup' && (
-              <div className="mb-3">
-                <label className="form-label text-dark font-mono small fw-semibold">Shop Floor Role</label>
-                <select
-                  value={authForm.role}
-                  onChange={(e) => setAuthForm({ ...authForm, role: e.target.value })}
-                  className="form-select cad-form-control form-control-sm font-mono"
-                >
-                  <option value="CNC Floor Operator">CNC Floor Operator</option>
-                  <option value="Reliability Engineer">Reliability &amp; Maintenance Engineer</option>
-                  <option value="Quality Assurance Manager">Quality Assurance (QA) Manager</option>
-                </select>
-              </div>
-            )}
-
-            {authError && (
-              <div className="alert alert-danger font-mono small py-2 mb-3">
-                <i className="bi bi-exclamation-triangle me-1"></i>{authError}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={authLoading}
-              className="btn btn-primary w-100 py-2 font-mono fw-bold d-flex align-items-center justify-content-center gap-2 shadow-sm"
-            >
-              {authLoading ? (
-                <span className="spinner-border spinner-border-sm" role="status"></span>
-              ) : (
-                <>
-                  <i className={`bi ${authMode === 'signin' ? 'bi-box-arrow-in-right' : 'bi-person-plus-fill'}`}></i>
-                  {authMode === 'signin' ? 'Sign In to PHM Dashboard' : 'Register Operator Account'}
-                </>
+              {authError && (
+                <div className="alert alert-danger font-mono small py-2 mb-3">
+                  <i className="bi bi-exclamation-triangle me-1"></i>{authError}
+                </div>
               )}
-            </button>
-          </form>
 
-          <div className="mt-4 pt-3 border-top text-center font-mono small text-muted" style={{ fontSize: '11px' }}>
-            <span>Demo credentials: <strong>operator@cnc.com</strong> | <strong>password123</strong></span>
-          </div>
+              <button
+                type="submit"
+                disabled={authLoading || otpCode.length !== 6}
+                className="btn btn-success w-100 py-2 font-mono fw-bold d-flex align-items-center justify-content-center gap-2 shadow-sm mb-2"
+              >
+                {authLoading ? (
+                  <span className="spinner-border spinner-border-sm"></span>
+                ) : (
+                  <>
+                    <i className="bi bi-shield-check"></i>
+                    Verify OTP &amp; Enter
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setStep('credentials'); setAuthError(''); }}
+                className="btn btn-link w-100 text-secondary font-mono small text-decoration-none"
+              >
+                ← Back to Credentials
+              </button>
+            </form>
+          )}
         </motion.div>
       </div>
     );
@@ -362,7 +426,6 @@ export default function App() {
 
   return (
     <div className="min-vh-100 position-relative pb-5">
-      {/* CAD Grid Background */}
       <div className="live-cad-bg" />
 
       {/* Industrial Header */}
@@ -394,10 +457,11 @@ export default function App() {
                   key={link.path}
                   type="button"
                   onClick={() => navigate(link.path)}
-                  className={`btn btn-sm px-3 py-2 fw-semibold d-flex align-items-center gap-2 rounded-2 ${isActive
+                  className={`btn btn-sm px-3 py-2 fw-semibold d-flex align-items-center gap-2 rounded-2 ${
+                    isActive
                       ? 'btn-primary text-white shadow-sm'
                       : 'btn-outline-secondary text-dark bg-white'
-                    }`}
+                  }`}
                   style={{ fontSize: '12px' }}
                 >
                   <i className={`bi ${link.icon}`}></i>
@@ -429,8 +493,8 @@ export default function App() {
       {/* Main Content */}
       <main className="container position-relative py-4" style={{ maxWidth: '1280px', zIndex: 10 }}>
 
-        {/* Process Constraint Warning */}
-        <div
+        {/* Process Constraint Warning Banner */}
+        <div 
           className="mb-4 p-3 rounded-2 d-flex align-items-center gap-3 shadow-sm bg-white"
           style={{
             borderLeft: '4px solid #f59e0b',
@@ -697,7 +761,7 @@ export default function App() {
               <div>
                 <div className="cad-panel p-4 mb-4">
                   <div className="crosshair ch-tl" /><div className="crosshair ch-tr" /><div className="crosshair ch-bl" /><div className="crosshair ch-br" />
-
+                  
                   <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                     <h5 className="fw-bold text-dark mb-0 font-mono d-flex align-items-center gap-2">
                       <i className="bi bi-intersect text-primary"></i> Multimodal Agreement &amp; Cross-Stream Verification
@@ -947,7 +1011,7 @@ export default function App() {
                   <div className="col-md-6">
                     <div className="cad-panel p-4 h-100">
                       <div className="crosshair ch-tl" /><div className="crosshair ch-tr" /><div className="crosshair ch-bl" /><div className="crosshair ch-br" />
-
+                      
                       <span className="font-mono text-primary small fw-semibold">// CNC MACHINE SETUP</span>
                       <h4 className="fw-bold text-dark mb-4 mt-1">Roders RFM760 Center</h4>
                       <div className="font-mono small">
