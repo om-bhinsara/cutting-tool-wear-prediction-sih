@@ -11,6 +11,10 @@ import smtplib
 import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 import numpy as np
 import torch
@@ -51,7 +55,7 @@ CORS(
 # DATABASE CONFIGURATION & MODELS
 # ============================================================
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:root@localhost:5432/toolwear_db"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
@@ -146,11 +150,11 @@ with app.app_context():
 # ============================================================
 
 SECRET_KEY = os.getenv("JWT_SECRET", "cnc-industrial-phm-jwt-secret-key")
-EMAIL_VERIFY_API_KEY = os.getenv("EMAIL_VERIFY_API_KEY", "389d207515e25b86d90c05dc4572995a98ceebe6")
+EMAIL_VERIFY_API_KEY = os.getenv("EMAIL_VERIFY_API_KEY", "")
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_EMAIL = os.getenv("SMTP_EMAIL", "mayuresh.patel2007@gmail.com")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "sexk btra aiso tvvs")
+SMTP_EMAIL = os.getenv("SMTP_EMAIL", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 
 OTP_STORE = {}
 
@@ -264,33 +268,63 @@ def verify_email_realtime_api(email_str):
 
 
 def send_otp_email(receiver_email, otp_code, user_name="CNC Operator"):
+    """Send a verification OTP using the SMTP credentials from .env."""
     if not SMTP_EMAIL or not SMTP_PASSWORD:
-        return False, "SMTP credentials are not configured."
+        return False, "SMTP credentials are not configured. Set SMTP_EMAIL and SMTP_PASSWORD in .env."
 
-    msg = MIMEMultipart()
     sender_cleaned = SMTP_EMAIL.strip()
-    msg["From"] = f"ToolWear.AI Security <{sender_cleaned}>"
-    msg["To"] = receiver_email.strip()
-    msg["Subject"] = f"ToolWear.AI Verification Code: {otp_code}"
+    receiver_cleaned = receiver_email.strip()
+
+    msg = MIMEMultipart("alternative")
+    msg["From"] = f"ToolWear.AI <{sender_cleaned}>"
+    msg["To"] = receiver_cleaned
+    msg["Reply-To"] = sender_cleaned
+    msg["Subject"] = "Your ToolWear.AI verification code"
+
+    text_content = f"""
+Hello {user_name},
+
+Your ToolWear.AI verification code is:
+
+{otp_code}
+
+This code will expire in 5 minutes.
+
+If you did not request this code, you can safely ignore this email.
+
+ToolWear.AI
+"""
 
     html_content = f"""
-    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:500px;margin:0 auto;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#ffffff;">
-        <div style="background:#0284c7;padding:20px;text-align:center;color:#ffffff;">
-            <h2 style="margin:0;font-size:20px;">ToolWear.AI Authentication</h2>
-            <p style="margin:5px 0 0 0;font-size:12px;opacity:0.85;">Prognostics &amp; Health Management Security</p>
-        </div>
-        <div style="padding:24px;color:#1e293b;">
-            <p style="margin-top:0;">Hello <strong>{user_name}</strong>,</p>
-            <p style="font-size:14px;line-height:1.5;">Use the following One-Time Password (OTP) to securely access the CNC monitoring dashboard. This code expires in <strong>5 minutes</strong>.</p>
-            <div style="background:#f8fafc;border:1px dashed #0284c7;border-radius:6px;padding:16px;text-align:center;margin:20px 0;">
-                <span style="font-family:monospace;font-size:28px;font-weight:bold;letter-spacing:6px;color:#0284c7;">{otp_code}</span>
+    <!DOCTYPE html>
+    <html>
+    <body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+        <div style="max-width:520px;margin:40px auto;background:white;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden;">
+            <div style="background:#0284c7;padding:24px;text-align:center;color:white;">
+                <h2 style="margin:0;">ToolWear.AI</h2>
+                <p style="margin:6px 0 0;font-size:13px;">CNC Tool Wear Monitoring</p>
             </div>
-            <p style="font-size:12px;color:#64748b;margin-bottom:0;">Only verified email holders can enter the application.</p>
+            <div style="padding:30px;">
+                <p>Hello <strong>{user_name}</strong>,</p>
+                <p style="color:#475569;line-height:1.6;">Use the verification code below to continue signing in to ToolWear.AI.</p>
+                <div style="margin:25px 0;padding:18px;text-align:center;background:#f8fafc;border:1px solid #bae6fd;border-radius:8px;">
+                    <div style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#0284c7;">{otp_code}</div>
+                </div>
+                <p style="font-size:13px;color:#64748b;">This verification code expires in 5 minutes.</p>
+                <p style="font-size:12px;color:#94a3b8;">If you did not request this code, you can safely ignore this email.</p>
+            </div>
+            <div style="padding:15px 30px;background:#f8fafc;text-align:center;font-size:11px;color:#94a3b8;">
+                ToolWear.AI • CNC Tool Health &amp; Prognostics
+            </div>
         </div>
-    </div>
+    </body>
+    </html>
     """
+
+    msg.attach(MIMEText(text_content, "plain"))
     msg.attach(MIMEText(html_content, "html"))
 
+    server = None
     try:
         clean_password = SMTP_PASSWORD.replace(" ", "").strip()
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=15)
@@ -298,11 +332,17 @@ def send_otp_email(receiver_email, otp_code, user_name="CNC Operator"):
         server.starttls()
         server.ehlo()
         server.login(sender_cleaned, clean_password)
-        server.sendmail(sender_cleaned, receiver_email.strip(), msg.as_string())
-        server.quit()
+        server.sendmail(sender_cleaned, receiver_cleaned, msg.as_string())
         return True, "Email sent successfully."
     except Exception as e:
+        print(f"[SMTP ERROR] {type(e).__name__}: {e}")
         return False, str(e)
+    finally:
+        if server is not None:
+            try:
+                server.quit()
+            except Exception:
+                pass
 
 
 # ============================================================
