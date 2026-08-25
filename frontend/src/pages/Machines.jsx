@@ -40,13 +40,28 @@ const MACHINE_TYPES = [
 ];
 
 const CONTROLLERS = [
-  { id: "Heidenhain TNC 640", name: "Heidenhain TNC 640" },
-  { id: "Siemens Sinumerik 840D", name: "Siemens 840D sl" },
-  { id: "Fanuc 31i-B5", name: "Fanuc Series 31i" },
+  {
+    id: "Heidenhain TNC 640",
+    name: "Heidenhain TNC 640",
+  },
+  {
+    id: "Siemens Sinumerik 840D",
+    name: "Siemens 840D sl",
+  },
+  {
+    id: "Fanuc 31i-B5",
+    name: "Fanuc Series 31i",
+  },
 ];
 
-export default function Machines() {
+export default function Machines({
+  user,
+  selectedMachine,
+  onMachineSelect,
+  onViewMachine,
+}) {
   const navigate = useNavigate();
+
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -66,7 +81,9 @@ export default function Machines() {
   const loadMachines = async () => {
     try {
       setLoading(true);
+
       const res = await axios.get(`${API_BASE}/api/machines`);
+
       setMachines(res.data || []);
     } catch (err) {
       console.error("Failed to load machines:", err);
@@ -79,20 +96,58 @@ export default function Machines() {
     loadMachines();
   }, []);
 
-  const handleSelectMachine = (m) => {
-    localStorage.setItem("active_machine_id", m.id);
-    localStorage.setItem("active_machine_name", m.name);
-    window.dispatchEvent(new Event("storage"));
+  const handleSelectMachine = (machine) => {
+    if (!machine) return;
+
+    console.log("Selecting machine:", machine);
+
+    // Store selected machine information
+    localStorage.setItem(
+      "active_machine_id",
+      machine.id
+    );
+
+    localStorage.setItem(
+      "active_machine_name",
+      machine.name
+    );
+
+    // Store complete machine object
+    localStorage.setItem(
+      "active_machine",
+      JSON.stringify(machine)
+    );
+
+    // Update App state
+    if (onMachineSelect) {
+      onMachineSelect(machine);
+    }
+
+    // Optional callback if App provides it
+    if (onViewMachine) {
+      onViewMachine(machine);
+    }
+
+    // Navigate directly to dashboard
     navigate("/dashboard");
   };
 
   const handleAddMachine = async (e) => {
     e.preventDefault();
-    if (!form.id || !form.name) return;
+
+    if (!form.id || !form.name) {
+      alert("Please enter machine ID and machine name.");
+      return;
+    }
 
     try {
-      await axios.post(`${API_BASE}/api/machines`, form);
+      await axios.post(
+        `${API_BASE}/api/machines`,
+        form
+      );
+
       setShowModal(false);
+
       setForm({
         id: "",
         name: "",
@@ -104,45 +159,79 @@ export default function Machines() {
         spindle_max_rpm: 15000,
         feed_max_mm_min: 30000,
       });
-      loadMachines();
+
+      await loadMachines();
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to create machine");
+      console.error("Failed to create machine:", err);
+
+      alert(
+        err.response?.data?.error ||
+          "Failed to create machine"
+      );
     }
   };
 
   return (
     <div className="p-4">
-      {/* Header */}
+
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+
         <div>
           <span className="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 mb-1 font-mono text-uppercase">
             Fleet Control
           </span>
-          <h4 className="fw-bold m-0 text-dark">CNC Machine Fleet</h4>
+
+          <h4 className="fw-bold m-0 text-dark">
+            CNC Machine Fleet
+          </h4>
+
           <span className="text-secondary small">
-            Select an active CNC machine to monitor its isolated telemetry and tool degradation lifecycle
+            Select an active CNC machine to monitor its isolated
+            telemetry and tool degradation lifecycle
           </span>
         </div>
+
         <button
           className="btn btn-primary d-flex align-items-center gap-2 rounded-pill px-4 shadow-sm"
           onClick={() => setShowModal(true)}
         >
-          <i className="bi bi-plus-circle-fill" /> Add Machine
+          <i className="bi bi-plus-circle-fill" />
+          Add Machine
         </button>
+
       </div>
 
-      {/* Fleet Cards */}
       {loading ? (
+
         <div className="text-center py-5 text-secondary">
-          <div className="spinner-border text-primary me-2" />
-          <span>Loading machine fleet...</span>
+
+          <div
+            className="spinner-border text-primary me-2"
+            role="status"
+          />
+
+          <span>
+            Loading machine fleet...
+          </span>
+
         </div>
+
       ) : (
+
         <div className="row g-4">
-          {machines.map((m) => {
-            const isActive = (localStorage.getItem("active_machine_id") || "MCH-001") === m.id;
+
+          {machines.map((machine) => {
+
+            const isActive =
+              selectedMachine?.id === machine.id;
+
             return (
-              <div className="col-12 col-md-6 col-xl-4" key={m.id}>
+
+              <div
+                className="col-12 col-md-6 col-xl-4"
+                key={machine.id}
+              >
+
                 <div
                   className={`card h-100 border-0 rounded-4 shadow-sm p-4 transition-all ${
                     isActive
@@ -150,237 +239,494 @@ export default function Machines() {
                       : "bg-white"
                   }`}
                   style={{
-                    border: isActive ? "2px solid #1769e0" : "1px solid #edf2f7",
+                    border: isActive
+                      ? "2px solid #1769e0"
+                      : "1px solid #edf2f7",
                   }}
                 >
+
                   <div className="d-flex justify-content-between align-items-start mb-3">
+
                     <div className="d-flex align-items-center gap-3">
+
                       <div
                         className="rounded-circle d-flex align-items-center justify-content-center bg-light text-primary shadow-sm"
-                        style={{ width: 44, height: 44, fontSize: 20 }}
+                        style={{
+                          width: 44,
+                          height: 44,
+                          fontSize: 20,
+                        }}
                       >
                         ⚙
                       </div>
+
                       <div>
-                        <h5 className="fw-bold text-dark m-0">{m.name}</h5>
-                        <span className="font-mono text-muted small">{m.id}</span>
+
+                        <h5 className="fw-bold text-dark m-0">
+                          {machine.name}
+                        </h5>
+
+                        <span className="font-mono text-muted small">
+                          {machine.id}
+                        </span>
+
                       </div>
+
                     </div>
+
                     <span
-                      className={`badge rounded-pill px-2.5 py-1 text-uppercase ${
-                        isActive ? "bg-primary text-white" : "bg-success-subtle text-success border border-success-subtle"
+                      className={`badge rounded-pill px-2 py-1 text-uppercase ${
+                        isActive
+                          ? "bg-primary text-white"
+                          : "bg-success-subtle text-success border border-success-subtle"
                       }`}
                       style={{ fontSize: 10 }}
                     >
-                      {isActive ? "ACTIVE" : m.status || "ONLINE"}
+                      {isActive
+                        ? "ACTIVE"
+                        : machine.status || "ONLINE"}
                     </span>
+
                   </div>
 
                   <div className="bg-light bg-opacity-75 rounded-3 p-3 mb-4">
-                    <div className="d-flex justify-content-between mb-1.5 small">
-                      <span className="text-muted">Workpiece Material:</span>
+
+                    <div className="d-flex justify-content-between mb-1 small">
+
+                      <span className="text-muted">
+                        Workpiece Material:
+                      </span>
+
                       <span className="badge bg-secondary-subtle text-dark border">
-                        {m.material || "CK45"}
+                        {machine.material || "CK45"}
                       </span>
+
                     </div>
-                    <div className="d-flex justify-content-between mb-1.5 small">
-                      <span className="text-muted">Machining Type:</span>
-                      <span className="fw-semibold text-dark text-end">{m.model_type}</span>
+
+                    <div className="d-flex justify-content-between mb-1 small">
+
+                      <span className="text-muted">
+                        Machining Type:
+                      </span>
+
+                      <span className="fw-semibold text-dark text-end">
+                        {machine.model_type ||
+                          "High-Speed Machining Center"}
+                      </span>
+
                     </div>
-                    <div className="d-flex justify-content-between mb-1.5 small">
-                      <span className="text-muted">Controller:</span>
-                      <span className="fw-semibold text-dark">{m.controller}</span>
+
+                    <div className="d-flex justify-content-between mb-1 small">
+
+                      <span className="text-muted">
+                        Controller:
+                      </span>
+
+                      <span className="fw-semibold text-dark">
+                        {machine.controller ||
+                          "Heidenhain TNC 640"}
+                      </span>
+
                     </div>
-                    <div className="d-flex justify-content-between mb-1.5 small">
-                      <span className="text-muted">Logged Passes:</span>
-                      <span className="fw-semibold text-dark">{m.passes_count || 0} cycles</span>
+
+                    <div className="d-flex justify-content-between mb-1 small">
+
+                      <span className="text-muted">
+                        Logged Passes:
+                      </span>
+
+                      <span className="fw-semibold text-dark">
+                        {machine.passes_count || 0} cycles
+                      </span>
+
                     </div>
+
                     <div className="d-flex justify-content-between small pt-2 border-top">
-                      <span className="text-muted">Latest Wear:</span>
-                      <span className="fw-bold text-primary">
-                        {m.wear_um != null ? `${Number(m.wear_um).toFixed(1)} µm` : "No data logged"}
+
+                      <span className="text-muted">
+                        Latest Wear:
                       </span>
+
+                      <span className="fw-bold text-primary">
+                        {machine.wear_um != null
+                          ? `${Number(
+                              machine.wear_um
+                            ).toFixed(1)} µm`
+                          : "No data logged"}
+                      </span>
+
                     </div>
+
                   </div>
 
                   <button
                     className={`btn w-100 rounded-pill py-2 font-medium ${
-                      isActive ? "btn-outline-primary fw-semibold" : "btn-primary shadow-sm"
+                      isActive
+                        ? "btn-outline-primary fw-semibold"
+                        : "btn-primary shadow-sm"
                     }`}
-                    onClick={() => handleSelectMachine(m)}
+                    onClick={() =>
+                      handleSelectMachine(machine)
+                    }
                   >
-                    {isActive ? "✓ Currently Active" : "Select & Monitor"}
+                    {isActive
+                      ? "✓ Currently Active"
+                      : "Select & Monitor"}
                   </button>
+
                 </div>
+
               </div>
+
             );
           })}
+
         </div>
+
       )}
 
-      {/* Modern Card-Selection Modal */}
       {showModal && (
+
         <div
           className="modal show d-block"
-          style={{ backgroundColor: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(6px)" }}
+          style={{
+            backgroundColor:
+              "rgba(15, 23, 42, 0.65)",
+            backdropFilter: "blur(6px)",
+          }}
         >
+
           <div className="modal-dialog modal-dialog-centered modal-lg">
+
             <div className="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+
               <form onSubmit={handleAddMachine}>
+
                 <div className="modal-header bg-primary text-white p-4">
+
                   <div>
-                    <h5 className="modal-title fw-bold m-0">Register New CNC Machine</h5>
-                    <span className="small opacity-85">Define telemetry specifications and cutting tool materials</span>
+
+                    <h5 className="modal-title fw-bold m-0">
+                      Register New CNC Machine
+                    </h5>
+
+                    <span className="small opacity-85">
+                      Define telemetry specifications and cutting
+                      tool materials
+                    </span>
+
                   </div>
+
                   <button
                     type="button"
                     className="btn-close btn-close-white"
-                    onClick={() => setShowModal(false)}
+                    onClick={() =>
+                      setShowModal(false)
+                    }
                   />
+
                 </div>
 
-                <div className="modal-body p-4" style={{ maxHeight: "70vh", overflowY: "auto" }}>
-                  {/* Basic Identifiers */}
+                <div
+                  className="modal-body p-4"
+                  style={{
+                    maxHeight: "70vh",
+                    overflowY: "auto",
+                  }}
+                >
+
                   <div className="row g-3 mb-4">
+
                     <div className="col-12 col-md-6">
+
                       <label className="form-label small fw-bold text-secondary">
                         MACHINE ID (UNIQUE CODE)
                       </label>
+
                       <input
                         className="form-control rounded-3 font-mono"
                         placeholder="e.g. MCH-002"
                         value={form.id}
-                        onChange={(e) => setForm({ ...form, id: e.target.value.toUpperCase() })}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            id: e.target.value.toUpperCase(),
+                          })
+                        }
                         required
                       />
+
                     </div>
+
                     <div className="col-12 col-md-6">
+
                       <label className="form-label small fw-bold text-secondary">
                         MACHINE NAME / MODEL
                       </label>
+
                       <input
                         className="form-control rounded-3"
                         placeholder="e.g. DMU 50 EVO"
                         value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            name: e.target.value,
+                          })
+                        }
                         required
                       />
+
                     </div>
+
                   </div>
 
-                  {/* 1. Workpiece Material Selection Cards */}
                   <div className="mb-4">
+
                     <label className="form-label small fw-bold text-secondary d-block mb-2">
-                      TARGET WORKPIECE MATERIAL (CUTTING SUBSTRATE)
+                      TARGET WORKPIECE MATERIAL
                     </label>
+
                     <div className="row g-3">
-                      {WORKPIECE_MATERIALS.map((mat) => {
-                        const selected = form.material === mat.id;
+
+                      {WORKPIECE_MATERIALS.map((material) => {
+
+                        const selected =
+                          form.material === material.id;
+
                         return (
-                          <div className="col-12 col-md-6" key={mat.id}>
+
+                          <div
+                            className="col-12 col-md-6"
+                            key={material.id}
+                          >
+
                             <div
                               className={`card p-3 rounded-4 cursor-pointer transition-all border-2 ${
                                 selected
                                   ? "border-primary bg-primary bg-opacity-10 shadow-sm"
                                   : "border-light bg-light bg-opacity-50"
                               }`}
-                              style={{ cursor: "pointer" }}
-                              onClick={() => setForm({ ...form, material: mat.id })}
+                              style={{
+                                cursor: "pointer",
+                              }}
+                              onClick={() =>
+                                setForm({
+                                  ...form,
+                                  material:
+                                    material.id,
+                                })
+                              }
                             >
+
                               <div className="d-flex justify-content-between align-items-center mb-1">
+
                                 <div className="d-flex align-items-center gap-2">
-                                  <i className={`bi ${mat.icon} text-primary fs-5`} />
-                                  <span className="fw-bold text-dark">{mat.name}</span>
+
+                                  <i
+                                    className={`bi ${material.icon} text-primary fs-5`}
+                                  />
+
+                                  <span className="fw-bold text-dark">
+                                    {material.name}
+                                  </span>
+
                                 </div>
+
                                 <input
                                   type="radio"
                                   className="form-check-input"
                                   checked={selected}
-                                  onChange={() => setForm({ ...form, material: mat.id })}
+                                  onChange={() =>
+                                    setForm({
+                                      ...form,
+                                      material:
+                                        material.id,
+                                    })
+                                  }
                                 />
+
                               </div>
-                              <span className="badge bg-secondary-subtle text-secondary w-auto align-self-start my-1" style={{ fontSize: "10px" }}>
-                                {mat.tag}
+
+                              <span
+                                className="badge bg-secondary-subtle text-secondary w-auto align-self-start my-1"
+                                style={{
+                                  fontSize: "10px",
+                                }}
+                              >
+                                {material.tag}
                               </span>
-                              <div className="text-muted small mt-1">{mat.desc}</div>
+
+                              <div className="text-muted small mt-1">
+                                {material.desc}
+                              </div>
+
                             </div>
+
                           </div>
+
                         );
                       })}
+
                     </div>
+
                   </div>
 
-                  {/* 2. Machining Center Type Selection Cards */}
                   <div className="mb-4">
+
                     <label className="form-label small fw-bold text-secondary d-block mb-2">
                       MACHINING TYPE & OPERATION
                     </label>
+
                     <div className="row g-2">
+
                       {MACHINE_TYPES.map((type) => {
-                        const selected = form.model_type === type.id;
+
+                        const selected =
+                          form.model_type === type.id;
+
                         return (
-                          <div className="col-12 col-md-4" key={type.id}>
+
+                          <div
+                            className="col-12 col-md-4"
+                            key={type.id}
+                          >
+
                             <div
                               className={`card p-3 rounded-3 h-100 cursor-pointer border-2 ${
-                                selected ? "border-primary bg-primary bg-opacity-10 shadow-sm" : "border-light bg-light"
+                                selected
+                                  ? "border-primary bg-primary bg-opacity-10 shadow-sm"
+                                  : "border-light bg-light"
                               }`}
-                              style={{ cursor: "pointer" }}
-                              onClick={() => setForm({ ...form, model_type: type.id })}
+                              style={{
+                                cursor: "pointer",
+                              }}
+                              onClick={() =>
+                                setForm({
+                                  ...form,
+                                  model_type:
+                                    type.id,
+                                })
+                              }
                             >
-                              <div className="fw-bold small text-dark mb-1">{type.name}</div>
-                              <div className="text-muted" style={{ fontSize: "11px" }}>{type.desc}</div>
+
+                              <div className="fw-bold small text-dark mb-1">
+                                {type.name}
+                              </div>
+
+                              <div
+                                className="text-muted"
+                                style={{
+                                  fontSize: "11px",
+                                }}
+                              >
+                                {type.desc}
+                              </div>
+
                             </div>
+
                           </div>
+
                         );
                       })}
+
                     </div>
+
                   </div>
 
-                  {/* 3. Controller Unit Selection Cards */}
                   <div className="mb-2">
+
                     <label className="form-label small fw-bold text-secondary d-block mb-2">
                       CONTROLLER UNIT
                     </label>
+
                     <div className="row g-2">
-                      {CONTROLLERS.map((ctrl) => {
-                        const selected = form.controller === ctrl.id;
+
+                      {CONTROLLERS.map((controller) => {
+
+                        const selected =
+                          form.controller ===
+                          controller.id;
+
                         return (
-                          <div className="col-12 col-md-4" key={ctrl.id}>
+
+                          <div
+                            className="col-12 col-md-4"
+                            key={controller.id}
+                          >
+
                             <div
-                              className={`card p-2.5 rounded-3 text-center cursor-pointer border-2 ${
-                                selected ? "border-primary bg-primary bg-opacity-10 shadow-sm" : "border-light bg-light"
+                              className={`card p-2 rounded-3 text-center cursor-pointer border-2 ${
+                                selected
+                                  ? "border-primary bg-primary bg-opacity-10 shadow-sm"
+                                  : "border-light bg-light"
                               }`}
-                              style={{ cursor: "pointer" }}
-                              onClick={() => setForm({ ...form, controller: ctrl.id })}
+                              style={{
+                                cursor: "pointer",
+                              }}
+                              onClick={() =>
+                                setForm({
+                                  ...form,
+                                  controller:
+                                    controller.id,
+                                })
+                              }
                             >
-                              <span className={`small ${selected ? "fw-bold text-primary" : "text-dark"}`}>
-                                {ctrl.name}
+
+                              <span
+                                className={`small ${
+                                  selected
+                                    ? "fw-bold text-primary"
+                                    : "text-dark"
+                                }`}
+                              >
+                                {controller.name}
                               </span>
+
                             </div>
+
                           </div>
+
                         );
                       })}
+
                     </div>
+
                   </div>
+
                 </div>
 
                 <div className="modal-footer border-0 p-4 pt-0">
+
                   <button
                     type="button"
                     className="btn btn-light rounded-pill px-4"
-                    onClick={() => setShowModal(false)}
+                    onClick={() =>
+                      setShowModal(false)
+                    }
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary rounded-pill px-4">
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary rounded-pill px-4"
+                  >
                     Register Machine
                   </button>
+
                 </div>
+
               </form>
+
             </div>
+
           </div>
+
         </div>
+
       )}
+
     </div>
   );
 }

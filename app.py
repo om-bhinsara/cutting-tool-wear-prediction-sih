@@ -51,10 +51,7 @@ CORS(
 # DATABASE CONFIGURATION & MODELS
 # ============================================================
 
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:cnc_password_123@localhost:5432/toolwear_db"
-)
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:root@localhost:5432/toolwear_db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)

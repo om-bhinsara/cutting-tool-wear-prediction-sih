@@ -18,8 +18,6 @@ class WearDataset(Dataset):
         # Machining metadata
         self.num_cols = ["Vc", "n", "fz", "Vf", "Ae", "Ap"]
 
-        # IMPORTANT:
-        # Statistics are calculated from TRAINING data only
         tr = df[df.split == "train"]
 
         self.mu = (
@@ -54,10 +52,7 @@ class WearDataset(Dataset):
 
         r = self.df.iloc[i]
 
-        # -------------------------------------------------
-        # IMAGE
-        # -------------------------------------------------
-        # Fixed edge crop for every sample
+
         image_path = (
             self.root
             / "data"
@@ -74,9 +69,6 @@ class WearDataset(Dataset):
             / 255.0
         )
 
-        # -------------------------------------------------
-        # SENSOR
-        # -------------------------------------------------
         sensor_path = (
             self.root
             / "data"
@@ -86,9 +78,7 @@ class WearDataset(Dataset):
 
         sen = np.load(sensor_path).astype(np.float32)
 
-        # -------------------------------------------------
-        # METADATA
-        # -------------------------------------------------
+
         meta = (
             r[self.num_cols]
             .astype(float)
@@ -106,9 +96,7 @@ class WearDataset(Dataset):
             material
         ].astype(np.float32)
 
-        # -------------------------------------------------
-        # TARGET
-        # -------------------------------------------------
+
         y = (
             float(r.wear_um) - self.y_mu
         ) / self.y_sd
