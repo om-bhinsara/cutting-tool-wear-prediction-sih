@@ -1,0 +1,1222 @@
+/* =========================================================
+   GUIDE PAGE
+========================================================= */
+
+.guide-page {
+  width: 100%;
+  min-height: 100%;
+  padding: 32px;
+  box-sizing: border-box;
+  color: #10213f;
+  background: #f7faff;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  margin-bottom: 32px;
+  padding: 30px;
+  border: 1px solid #dfe8f3;
+  border-radius: 18px;
+  background:
+    linear-gradient(
+      135deg,
+      #ffffff 0%,
+      #f2f7ff 100%
+    );
+  box-shadow:
+    0 8px 30px rgba(28, 52, 88, 0.05);
+}
+
+.guide-header-content {
+  max-width: 780px;
+}
+
+.guide-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: #0b66d8;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.guide-header h1 {
+  margin: 0;
+  color: #071b3a;
+  font-size: 38px;
+  line-height: 1.12;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.guide-header p {
+  max-width: 700px;
+  margin: 10px 0 0;
+  color: #657792;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.guide-header-icon {
+  display: flex;
+  width: 100px;
+  height: 100px;
+  flex: 0 0 100px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24px;
+  background: #e9f3ff;
+  color: #0b66d8;
+  font-size: 44px;
+}
+
+
+/* =========================================================
+   SECTION HEADINGS
+========================================================= */
+
+.guide-section-heading {
+  margin-bottom: 20px;
+}
+
+.guide-section-heading span {
+  color: #0b66d8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.guide-section-heading h2 {
+  margin: 5px 0 0;
+  color: #102b4e;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.guide-section-heading p {
+  margin: 6px 0 0;
+  color: #73849b;
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   QUICK WORKFLOW
+========================================================= */
+
+.guide-workflow-section {
+  margin-bottom: 38px;
+}
+
+.guide-workflow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid #dfe7f1;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow:
+    0 6px 22px rgba(28, 52, 88, 0.04);
+}
+
+.guide-workflow-step {
+  display: flex;
+  min-width: 120px;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid #e3eaf3;
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+
+.guide-workflow-number {
+  display: flex;
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #0b66d8;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.guide-workflow-icon {
+  color: #0b66d8;
+  font-size: 18px;
+}
+
+.guide-workflow-step strong {
+  color: #253c5b;
+  font-size: 12px;
+}
+
+.guide-workflow-arrow {
+  flex: 0 0 auto;
+  color: #91a2b8;
+  font-size: 16px;
+}
+
+
+/* =========================================================
+   STEP LIST
+========================================================= */
+
+.guide-steps-section {
+  margin-bottom: 42px;
+}
+
+.guide-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.guide-step-card {
+  display: grid;
+  grid-template-columns:
+    minmax(280px, 0.9fr)
+    minmax(450px, 1.5fr);
+  gap: 25px;
+  padding: 25px;
+  border: 1px solid #dfe7f1;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow:
+    0 7px 25px rgba(28, 52, 88, 0.045);
+}
+
+
+/* =========================================================
+   STEP INFORMATION
+========================================================= */
+
+.guide-step-information {
+  position: relative;
+}
+
+.guide-step-number {
+  margin-bottom: 15px;
+  color: #dce7f5;
+  font-size: 46px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.guide-step-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.guide-step-icon {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: #eaf3ff;
+  color: #0b66d8;
+  font-size: 20px;
+}
+
+.guide-step-title-row span {
+  color: #0b66d8;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.guide-step-title-row h3 {
+  margin: 3px 0 0;
+  color: #172f50;
+  font-size: 20px;
+}
+
+.guide-step-description {
+  margin: 18px 0;
+  color: #687b94;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.guide-action-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px;
+  border: 1px solid #dbe9f8;
+  border-radius: 11px;
+  background: #f5f9ff;
+}
+
+.guide-action-box > i {
+  margin-top: 2px;
+  color: #0b66d8;
+}
+
+.guide-action-box strong {
+  color: #24415f;
+  font-size: 12px;
+}
+
+.guide-action-box p {
+  margin: 4px 0 0;
+  color: #70829a;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+
+/* =========================================================
+   VISUAL SIDE
+========================================================= */
+
+.guide-step-visual {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid #e2e9f2;
+  border-radius: 14px;
+  background: #f6f9fd;
+}
+
+.guide-visual-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+  color: #647790;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+
+/* =========================================================
+   MOCK BROWSER
+========================================================= */
+
+.guide-screen {
+  position: relative;
+  min-height: 260px;
+  overflow: hidden;
+  border: 1px solid #d9e2ed;
+  border-radius: 11px;
+  background: #ffffff;
+  box-shadow:
+    0 8px 20px rgba(30, 54, 90, 0.08);
+}
+
+.guide-browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 25px;
+  padding: 0 10px;
+  border-bottom: 1px solid #e4eaf2;
+  background: #f5f7fa;
+}
+
+.guide-browser-bar span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #bdc8d6;
+}
+
+
+/* =========================================================
+   LOGIN MOCKUP
+========================================================= */
+
+.guide-login-body {
+  display: flex;
+  width: 230px;
+  margin: 20px auto;
+  align-items: center;
+  flex-direction: column;
+}
+
+.guide-login-logo {
+  display: flex;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 6px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #0b66d8;
+  color: #ffffff;
+}
+
+.guide-login-body > strong {
+  color: #152f50;
+  font-size: 14px;
+}
+
+.guide-login-body > small {
+  margin-bottom: 13px;
+  color: #8493a7;
+  font-size: 8px;
+}
+
+.guide-input-mock {
+  width: 100%;
+  height: 27px;
+  margin-bottom: 7px;
+  padding: 0 9px;
+  box-sizing: border-box;
+  border: 1px solid #dce4ee;
+  border-radius: 5px;
+  color: #a0acba;
+  font-size: 8px;
+  line-height: 27px;
+}
+
+.guide-button-mock {
+  width: 100%;
+  height: 29px;
+  border-radius: 5px;
+  background: #0b66d8;
+  color: #ffffff;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 29px;
+}
+
+
+/* =========================================================
+   MACHINE MOCKUP
+========================================================= */
+
+.guide-mock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px;
+}
+
+.guide-mock-header small {
+  display: block;
+  color: #0b66d8;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.guide-mock-header strong {
+  display: block;
+  margin-top: 3px;
+  color: #1a3557;
+  font-size: 14px;
+}
+
+.guide-search-mock {
+  width: 130px;
+  height: 27px;
+  padding: 0 8px;
+  border: 1px solid #dce4ee;
+  border-radius: 6px;
+  color: #9aa7b7;
+  font-size: 8px;
+  line-height: 27px;
+}
+
+.guide-search-mock i {
+  margin-right: 5px;
+}
+
+.guide-machine-row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr 0.6fr;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 17px;
+  border-top: 1px solid #edf1f5;
+}
+
+.guide-machine-heading {
+  min-height: 30px;
+  background: #fafbfd;
+  color: #78899f;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.guide-machine-row strong {
+  display: block;
+  color: #27415f;
+  font-size: 10px;
+}
+
+.guide-machine-row small {
+  color: #8997a9;
+  font-size: 7px;
+}
+
+.guide-online {
+  color: #078454;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.guide-offline {
+  color: #78879a;
+  font-size: 8px;
+}
+
+.guide-view-mock {
+  width: 48px;
+  height: 25px;
+  border: 1px solid #d5e0ec;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1e456f;
+  cursor: default;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   DASHBOARD MOCKUP
+========================================================= */
+
+.guide-dashboard-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 12px;
+}
+
+.guide-dashboard-top small {
+  display: block;
+  color: #8090a5;
+  font-size: 8px;
+}
+
+.guide-dashboard-top strong {
+  display: block;
+  margin-top: 3px;
+  color: #173554;
+  font-size: 15px;
+}
+
+.guide-dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0 20px;
+}
+
+.guide-dashboard-cards > div {
+  padding: 10px;
+  border: 1px solid #e3eaf2;
+  border-radius: 7px;
+  background: #fbfcfe;
+}
+
+.guide-dashboard-cards small {
+  display: block;
+  margin-bottom: 4px;
+  color: #8291a5;
+  font-size: 7px;
+}
+
+.guide-dashboard-cards strong {
+  color: #173554;
+  font-size: 14px;
+}
+
+.guide-chart-mock {
+  position: relative;
+  height: 110px;
+  margin: 15px 20px;
+  overflow: hidden;
+  border: 1px solid #e3eaf2;
+  border-radius: 7px;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 20px,
+      #edf2f7 21px
+    );
+}
+
+.guide-chart-line {
+  position: absolute;
+  left: 5%;
+  width: 90%;
+  height: 2px;
+  background: #4c91df;
+  transform-origin: left center;
+}
+
+.line-one {
+  top: 75%;
+  transform: rotate(-7deg);
+}
+
+.line-two {
+  top: 56%;
+  transform: rotate(8deg);
+}
+
+.line-three {
+  top: 37%;
+  transform: rotate(-4deg);
+}
+
+
+/* =========================================================
+   UPLOAD MOCKUP
+========================================================= */
+
+.guide-upload-screen {
+  padding: 15px;
+  box-sizing: border-box;
+}
+
+.guide-upload-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 13px;
+}
+
+.guide-upload-title > i {
+  color: #0b66d8;
+  font-size: 20px;
+}
+
+.guide-upload-title strong {
+  display: block;
+  color: #1c3858;
+  font-size: 12px;
+}
+
+.guide-upload-title small {
+  display: block;
+  margin-top: 2px;
+  color: #8291a5;
+  font-size: 8px;
+}
+
+.guide-upload-box {
+  display: inline-flex;
+  width: calc(50% - 5px);
+  min-height: 125px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  border: 1px dashed #a9c4e4;
+  border-radius: 9px;
+  background: #f7fbff;
+  vertical-align: top;
+}
+
+.guide-upload-box + .guide-upload-box {
+  margin-left: 10px;
+}
+
+.guide-upload-box > i {
+  margin-bottom: 6px;
+  color: #4387d1;
+  font-size: 22px;
+}
+
+.guide-upload-box strong {
+  color: #294461;
+  font-size: 9px;
+}
+
+.guide-upload-box small {
+  margin: 4px 0 7px;
+  color: #8595a9;
+  font-size: 7px;
+}
+
+.guide-upload-box button {
+  height: 22px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 4px;
+  background: #0b66d8;
+  color: #ffffff;
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.guide-pass-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  color: #5f7189;
+  font-size: 8px;
+}
+
+.guide-pass-row div {
+  width: 60px;
+  height: 22px;
+  border: 1px solid #d8e2ec;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #263e5b;
+  text-align: center;
+  line-height: 22px;
+}
+
+
+/* =========================================================
+   AI MOCKUP
+========================================================= */
+
+.guide-ai-screen {
+  padding: 22px;
+  box-sizing: border-box;
+}
+
+.guide-ai-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.guide-ai-icon {
+  display: flex;
+  width: 37px;
+  height: 37px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: #eaf3ff;
+  color: #0b66d8;
+}
+
+.guide-ai-heading small {
+  display: block;
+  color: #7c8ca2;
+  font-size: 8px;
+}
+
+.guide-ai-heading strong {
+  display: block;
+  margin-top: 3px;
+  color: #193654;
+  font-size: 14px;
+}
+
+.guide-ai-result {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.guide-ai-result > div {
+  padding: 14px;
+  border: 1px solid #e1e8f0;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.guide-ai-result small {
+  display: block;
+  color: #7c8da2;
+  font-size: 7px;
+}
+
+.guide-ai-result strong {
+  display: block;
+  margin-top: 5px;
+  color: #173554;
+  font-size: 19px;
+}
+
+.guide-ai-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  color: #08794d;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.guide-ai-status span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #07935b;
+}
+
+.guide-prediction-bar {
+  height: 7px;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #e8edf3;
+}
+
+.guide-prediction-bar span {
+  display: block;
+  width: 87%;
+  height: 100%;
+  border-radius: inherit;
+  background: #0b66d8;
+}
+
+
+/* =========================================================
+   RESULTS MOCKUP
+========================================================= */
+
+.guide-results-screen {
+  display: grid;
+  grid-template-columns: 45px 1fr;
+}
+
+.guide-results-sidebar {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 13px;
+  padding: 12px 0;
+  border-right: 1px solid #e0e7f0;
+  background: #fbfcfe;
+}
+
+.guide-mini-brand {
+  display: flex;
+  width: 27px;
+  height: 27px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 5px;
+  border-radius: 7px;
+  background: #0b66d8;
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.guide-results-sidebar span {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: #8090a5;
+  font-size: 12px;
+}
+
+.guide-results-sidebar span.active {
+  background: #e7f1ff;
+  color: #0b66d8;
+}
+
+.guide-results-main {
+  padding: 18px;
+}
+
+.guide-results-main > small {
+  color: #0b66d8;
+  font-size: 7px;
+  font-weight: 800;
+}
+
+.guide-results-main > strong {
+  display: block;
+  margin-top: 4px;
+  color: #1a3555;
+  font-size: 14px;
+}
+
+.guide-result-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 15px;
+}
+
+.guide-result-grid div {
+  padding: 10px;
+  border: 1px solid #e1e8f0;
+  border-radius: 7px;
+}
+
+.guide-result-grid span {
+  display: block;
+  color: #8291a4;
+  font-size: 7px;
+}
+
+.guide-result-grid strong {
+  display: block;
+  margin-top: 3px;
+  color: #193654;
+  font-size: 14px;
+}
+
+.guide-result-chart {
+  display: flex;
+  height: 85px;
+  align-items: flex-end;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid #e2e9f1;
+  border-radius: 7px;
+  box-sizing: border-box;
+}
+
+.guide-result-chart span {
+  flex: 1;
+  border-radius: 3px 3px 0 0;
+  background: #9fc4ec;
+}
+
+.guide-result-chart span:nth-child(1) {
+  height: 30%;
+}
+
+.guide-result-chart span:nth-child(2) {
+  height: 42%;
+}
+
+.guide-result-chart span:nth-child(3) {
+  height: 38%;
+}
+
+.guide-result-chart span:nth-child(4) {
+  height: 55%;
+}
+
+.guide-result-chart span:nth-child(5) {
+  height: 68%;
+}
+
+.guide-result-chart span:nth-child(6) {
+  height: 78%;
+}
+
+
+/* =========================================================
+   AVAILABLE PAGES
+========================================================= */
+
+.guide-pages-section {
+  margin-bottom: 40px;
+}
+
+.guide-pages-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.guide-page-card {
+  padding: 18px;
+  border: 1px solid #dfe7f1;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow:
+    0 5px 18px rgba(28, 52, 88, 0.035);
+}
+
+.guide-page-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.guide-page-icon {
+  display: flex;
+  width: 39px;
+  height: 39px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #edf5ff;
+  color: #0b66d8;
+  font-size: 18px;
+}
+
+.guide-page-card-top > span {
+  color: #c0ccda;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.guide-page-card h3 {
+  margin: 16px 0 6px;
+  color: #203958;
+  font-size: 14px;
+}
+
+.guide-page-card p {
+  margin: 0;
+  color: #77889f;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+
+/* =========================================================
+   IMPORTANT RULE
+========================================================= */
+
+.guide-rule-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 35px;
+  padding: 22px;
+  border: 1px solid #d7e7f9;
+  border-radius: 16px;
+  background: #f1f7ff;
+}
+
+.guide-rule-icon {
+  display: flex;
+  width: 43px;
+  height: 43px;
+  flex: 0 0 43px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: #dceeff;
+  color: #0b66d8;
+  font-size: 20px;
+}
+
+.guide-rule-card span {
+  color: #0b66d8;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.guide-rule-card h2 {
+  margin: 4px 0 5px;
+  color: #193655;
+  font-size: 18px;
+}
+
+.guide-rule-card p {
+  max-width: 850px;
+  margin: 0;
+  color: #6b7f98;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+
+/* =========================================================
+   FINAL WORKFLOW
+========================================================= */
+
+.guide-final-section {
+  padding: 28px;
+  border-radius: 18px;
+  background:
+    linear-gradient(
+      135deg,
+      #092653,
+      #0d4d91
+    );
+  color: #ffffff;
+  box-shadow:
+    0 15px 35px rgba(8, 39, 78, 0.15);
+}
+
+.guide-final-content > span {
+  color: #a9d1ff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.guide-final-content h2 {
+  margin: 6px 0 5px;
+  color: #ffffff;
+  font-size: 23px;
+}
+
+.guide-final-content p {
+  max-width: 700px;
+  margin: 0;
+  color: #c4d8ef;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.guide-final-flow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 25px;
+}
+
+.guide-final-flow > div {
+  display: flex;
+  min-width: 130px;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.guide-final-flow > div i {
+  color: #b9dcff;
+  font-size: 18px;
+}
+
+.guide-final-flow > div strong {
+  font-size: 11px;
+}
+
+.guide-final-flow > i {
+  color: #91c2f3;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1200px) {
+  .guide-pages-grid {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+
+  .guide-workflow-step {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 950px) {
+  .guide-step-card {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-workflow {
+    flex-wrap: wrap;
+  }
+
+  .guide-workflow-step {
+    flex: 1 1 150px;
+  }
+
+  .guide-workflow-arrow {
+    display: none;
+  }
+
+  .guide-pages-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .guide-page {
+    padding: 18px;
+  }
+
+  .guide-header {
+    padding: 22px;
+  }
+
+  .guide-header h1 {
+    font-size: 30px;
+  }
+
+  .guide-header-icon {
+    display: none;
+  }
+
+  .guide-pages-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-final-flow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .guide-final-flow > i {
+    display: none;
+  }
+
+  .guide-final-flow > div {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 500px) {
+  .guide-step-card {
+    padding: 17px;
+  }
+
+  .guide-step-visual {
+    padding: 9px;
+  }
+
+  .guide-screen {
+    min-height: 230px;
+  }
+
+  .guide-dashboard-cards {
+    padding: 0 10px;
+  }
+
+  .guide-dashboard-top {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .guide-chart-mock {
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+
+  .guide-upload-box {
+    width: 100%;
+  }
+
+  .guide-upload-box + .guide-upload-box {
+    margin-top: 8px;
+    margin-left: 0;
+  }
+}

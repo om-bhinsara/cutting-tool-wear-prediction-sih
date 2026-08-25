@@ -1,30 +1,34 @@
-# Base Python image with PyTorch and CUDA runtime support
-FROM python:3.10-slim
+# Use official lightweight Python image
+FROM python:3.11-slim
 
 # Prevent Python from writing .pyc files & enable unbuffered logging
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV FLASK_APP=app.py
 
 WORKDIR /app
 
-# Install system-level dependencies for OpenCV / Pillow image processing
+# Install system dependencies for PostgreSQL, OpenCV, Pillow & networking
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    libgl1-mesa-glx \
+    libpq-dev \
+    libgl1 \
     libglib2.0-0 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PyTorch CPU/CUDA wheels and Python dependencies
+# Copy and install python dependencies first (leveraging Docker layer caching)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source code and Flask application
-COPY src/ ./src/
-COPY app.py .
+# Copy backend source code, model modules, and assets
+COPY . .
 
-# Create mount points for model artifacts (provide via bind-mount / volume at runtime)
+# Ensure checkpoints and outputs directories exist
 RUN mkdir -p /app/outputs /app/checkpoints
 
+# Expose Flask API port
 EXPOSE 5000
 
-CMD ["python", "app.py"]
+# Run with Gunicorn production server
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "--timeout", "120", "app:app"]
