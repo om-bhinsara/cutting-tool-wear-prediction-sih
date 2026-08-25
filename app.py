@@ -589,44 +589,31 @@ def evaluate_industrial_alerts(wear_um, rul_passes, sen_np):
     """
     alerts = []
     
+        # 1. Vibration / Chatter Check
     # 1. Vibration / Chatter Check
+    # Channel 0 = vibration / acceleration
     vib_channel = np.abs(sen_np[0, :])
+
     max_vib = float(np.max(vib_channel))
     rms_vib = float(np.sqrt(np.mean(vib_channel ** 2)))
-    
-    if max_vib >= 2.5 or rms_vib >= 1.8:
-        alerts.append({
-            "type": "vibration",
-            "level": "critical",
-            "title": "Severe Vibration / Chatter Detected",
-            "message": f"Peak acceleration reached {max_vib:.2f}g (RMS: {rms_vib:.2f}g). Exceeds safe threshold (2.5g). High risk of tool chipping or spindle damage.",
-            "action": "Reduce feed rate immediately or verify workpiece clamping."
-        })
-    elif max_vib >= 1.8:
-        alerts.append({
-            "type": "vibration",
-            "level": "warning",
-            "title": "Elevated Vibration Level",
-            "message": f"Peak acceleration is {max_vib:.2f}g. Approaching chatter resonance limits.",
-            "action": "Monitor spindle load and surface finish."
-        })
 
-    # 2. Tool Life / Critical Wear Check
-    if wear_um >= 280.0 or rul_passes <= 1:
+    # Industrial vibration threshold
+    VIBRATION_THRESHOLD_G = 2.5
+
+    if max_vib >= VIBRATION_THRESHOLD_G:
         alerts.append({
-            "type": "tool_life",
+            "type": "vibration",
             "level": "critical",
-            "title": "Tool End-of-Life: Immediate Replacement Required",
-            "message": f"Current flank wear is {wear_um:.1f} µm (Failure limit: 300 µm). Remaining tool life is virtually depleted ({rul_passes} passes left).",
-            "action": "Halt cycle and install a fresh tool insert."
-        })
-    elif wear_um >= 200.0 or rul_passes <= 5:
-        alerts.append({
-            "type": "tool_life",
-            "level": "warning",
-            "title": "Tool Approaching Failure Limit",
-            "message": f"Tool has entered rapid tertiary degradation ({wear_um:.1f} µm wear, ~{rul_passes} passes remaining).",
-            "action": "Schedule tool change before finishing passes."
+            "title": "Unusual Vibration Detected",
+            "message": (
+                f"Vibration records are unusual for this image. "
+                f"Peak acceleration reached {max_vib:.2f}g "
+                f"(RMS: {rms_vib:.2f}g), exceeding the "
+                f"{VIBRATION_THRESHOLD_G:.1f}g threshold."
+            ),
+            "action": (
+                "Consider manual machine maintenance inspection."
+            )
         })
 
     return alerts, {"max_vib_g": round(max_vib, 2), "rms_vib_g": round(rms_vib, 2)}
@@ -789,137 +776,587 @@ def compute_multimodal_agreement(img_tensor, sen_tensor):
 # ============================================================
 # PREDICTION
 # ============================================================
-
 @app.route("/predict", methods=["POST"])
 def predict():
     if model is None:
-        return jsonify({"error": f"Model checkpoint not loaded. Checked: {POSSIBLE_PATHS}"}), 500
+        return jsonify({
+            "error": f"Model checkpoint not loaded. Checked: {POSSIBLE_PATHS}"
+        }), 500
 
     try:
+        # ============================================================
+        # 1. IMAGE INPUT
+        # ============================================================
+
         if "image" not in request.files:
-            return jsonify({"error": "Micrograph crop image ('image') is required."}), 400
+            return jsonify({
+                "error": "Micrograph crop image ('image') is required."
+            }), 400
 
         image_file = request.files["image"]
+
+        if not image_file.filename:
+            return jsonify({
+                "error": "Please select a tool micrograph image."
+            }), 400
+
         stem = os.path.splitext(image_file.filename)[0]
 
-        pil_img = Image.open(image_file.stream).convert("RGB").resize((224, 224))
-        original_np = np.asarray(pil_img, dtype=np.uint8)
-        img_np = original_np.astype(np.float32).transpose(2, 0, 1) / 255.0
+        try:
+            pil_img = (
+                Image.open(image_file.stream)
+                .convert("RGB")
+                .resize((224, 224))
+            )
+        except Exception as image_err:
+            return jsonify({
+                "error": f"Invalid image file: {image_err}"
+            }), 400
 
-        img_tensor = torch.from_numpy(img_np).unsqueeze(0).to(DEVICE)
+        original_np = np.asarray(
+            pil_img,
+            dtype=np.uint8
+        )
+
+        img_np = (
+            original_np
+            .astype(np.float32)
+            .transpose(2, 0, 1)
+            / 255.0
+        )
+
+        img_tensor = (
+            torch.from_numpy(img_np)
+            .unsqueeze(0)
+            .to(DEVICE)
+        )
+
         img_tensor.requires_grad_(True)
 
+        # ============================================================
+        # 2. SENSOR INPUT
+        # ============================================================
+        # Sensor telemetry is REQUIRED because vibration analysis
+        # depends on the uploaded sensor data.
+        #
+        # Expected format:
+        #     5 channels x N samples
+        #
+        # Channel 0 = vibration / acceleration
+        # Channel 1 = acoustic
+        # Channel 2 = Fx
+        # Channel 3 = Fy
+        # Channel 4 = Fz
+        # ============================================================
+
         sen_np = None
+
         if "sensor" in request.files:
-            sen_np = np.load(io.BytesIO(request.files["sensor"].read())).astype(np.float32)
+            sensor_file = request.files["sensor"]
+
+            if not sensor_file.filename:
+                return jsonify({
+                    "error": "Sensor telemetry file is required."
+                }), 400
+
+            try:
+                sen_np = np.load(
+                    io.BytesIO(sensor_file.read())
+                ).astype(np.float32)
+
+            except Exception as sensor_err:
+                return jsonify({
+                    "error": f"Invalid sensor telemetry file: {sensor_err}"
+                }), 400
+
         elif "sensor_json" in request.form:
-            sen_np = np.array(json.loads(request.form["sensor_json"]), dtype=np.float32)
+            try:
+                sen_np = np.array(
+                    json.loads(request.form["sensor_json"]),
+                    dtype=np.float32
+                )
+
+            except Exception as sensor_err:
+                return jsonify({
+                    "error": f"Invalid sensor telemetry data: {sensor_err}"
+                }), 400
+
         else:
-            for s_dir in ["sensors", os.path.join("dataset", "sensors"), os.path.join("data", "sensors")]:
-                candidate = os.path.join(s_dir, f"{stem}.npy")
-                if os.path.exists(candidate):
-                    sen_np = np.load(candidate).astype(np.float32)
-                    break
+            return jsonify({
+                "error": (
+                    "Sensor telemetry file is required for vibration "
+                    "analysis. Please upload the .npy sensor file."
+                )
+            }), 400
 
-        if sen_np is None:
-            sen_np = np.zeros((5, 512), dtype=np.float32)
+        # ============================================================
+        # 3. NORMALIZE SENSOR DATA
+        # ============================================================
 
-        sen_np = normalize_sensor_array(sen_np)
-        sen_tensor = torch.from_numpy(sen_np).unsqueeze(0).to(DEVICE)
+        try:
+            sen_np = normalize_sensor_array(sen_np)
+
+        except Exception as sensor_shape_err:
+            return jsonify({
+                "error": str(sensor_shape_err)
+            }), 400
+
+        sen_tensor = (
+            torch.from_numpy(sen_np)
+            .unsqueeze(0)
+            .to(DEVICE)
+        )
+
+        # ============================================================
+        # 4. SENSOR QUALITY
+        # ============================================================
 
         sensor_quality = assess_sensor_quality(sen_np)
-        agreement = compute_multimodal_agreement(img_tensor, sen_tensor)
-        gradcam_images = safe_gradcam(img_tensor, sen_tensor, original_np)
 
-        dummy_meta = torch.zeros((1, 7), dtype=torch.float32, device=DEVICE)
+        # ============================================================
+        # 5. MULTIMODAL AGREEMENT
+        # ============================================================
+
+        agreement = compute_multimodal_agreement(
+            img_tensor,
+            sen_tensor
+        )
+
+        # ============================================================
+        # 6. GRAD-CAM
+        # ============================================================
+
+        gradcam_images = safe_gradcam(
+            img_tensor,
+            sen_tensor,
+            original_np
+        )
+
+        # ============================================================
+        # 7. MODEL PREDICTION
+        # ============================================================
+
+        dummy_meta = torch.zeros(
+            (1, 7),
+            dtype=torch.float32,
+            device=DEVICE
+        )
+
         with torch.no_grad():
-            pred_norm = model(img_tensor, sen_tensor, dummy_meta).cpu().numpy()[0]
+            pred_norm = (
+                model(
+                    img_tensor,
+                    sen_tensor,
+                    dummy_meta
+                )
+                .cpu()
+                .numpy()[0]
+            )
 
-        wear_um = max(0.0, float(pred_norm * y_sd + y_mu))
-        health_alert = compute_health_and_alerts(wear_um)
+        # Convert normalized prediction back to micrometers
+        wear_um = max(
+            0.0,
+            float(pred_norm * y_sd + y_mu)
+        )
 
-        rul_passes = max(0, int(round((300.0 - wear_um) / max(wear_um / 10.0, 1.0))))
+        # ============================================================
+        # 8. TOOL HEALTH
+        # ============================================================
 
-        step = max(1, sen_np.shape[1] // 100)
+        health_alert = compute_health_and_alerts(
+            wear_um
+        )
+
+        # ============================================================
+        # 9. REMAINING USEFUL LIFE
+        # ============================================================
+
+        rul_passes = max(
+            0,
+            int(
+                round(
+                    (300.0 - wear_um)
+                    / max(wear_um / 10.0, 1.0)
+                )
+            )
+        )
+
+        # ============================================================
+        # 10. SENSOR TIME SERIES
+        # ============================================================
+
+        step = max(
+            1,
+            sen_np.shape[1] // 100
+        )
+
         time_series = [
             {
                 "t": int(i),
-                "accel": round(float(sen_np[0, i]), 4),
-                "acoustic": round(float(sen_np[1, i]), 4),
-                "Fx": round(float(sen_np[2, i]), 4),
-                "Fy": round(float(sen_np[3, i]), 4),
-                "Fz": round(float(sen_np[4, i]), 4)
+
+                # Channel 0
+                "accel": round(
+                    float(sen_np[0, i]),
+                    4
+                ),
+
+                # Channel 1
+                "acoustic": round(
+                    float(sen_np[1, i]),
+                    4
+                ),
+
+                # Channel 2
+                "Fx": round(
+                    float(sen_np[2, i]),
+                    4
+                ),
+
+                # Channel 3
+                "Fy": round(
+                    float(sen_np[3, i]),
+                    4
+                ),
+
+                # Channel 4
+                "Fz": round(
+                    float(sen_np[4, i]),
+                    4
+                )
             }
-            for i in range(0, sen_np.shape[1], step)
+
+            for i in range(
+                0,
+                sen_np.shape[1],
+                step
+            )
         ]
 
-        # Industrial Alerts & Vibration Evaluation
-        system_alerts, vib_stats = evaluate_industrial_alerts(wear_um, rul_passes, sen_np)
+        # ============================================================
+        # 11. INDUSTRIAL ALERTS & VIBRATION ANALYSIS
+        # ============================================================
+        #
+        # evaluate_industrial_alerts() checks the vibration channel
+        # against the configured vibration threshold.
+        #
+        # If vibration >= threshold:
+        #
+        #   "Unusual Vibration Detected"
+        #
+        # and:
+        #
+        #   "Consider manual machine maintenance inspection."
+        #
+        # ============================================================
 
-        target_machine_id = request.form.get("machine_id", "MCH-001").strip().upper()
-        if not Machine.query.filter_by(id=target_machine_id).first():
+        system_alerts, vib_stats = evaluate_industrial_alerts(
+            wear_um,
+            rul_passes,
+            sen_np
+        )
+
+        # ============================================================
+        # 12. MACHINE IDENTIFICATION
+        # ============================================================
+
+        target_machine_id = (
+            request.form
+            .get("machine_id", "MCH-001")
+            .strip()
+            .upper()
+        )
+
+        # ============================================================
+        # 13. CREATE MACHINE IF IT DOES NOT EXIST
+        # ============================================================
+
+        if not Machine.query.filter_by(
+            id=target_machine_id
+        ).first():
+
             db.session.add(
                 Machine(
                     id=target_machine_id,
-                    name=request.form.get("machine_name", target_machine_id),
-                    material=request.form.get("material", "CK45"),
-                    tool_material=request.form.get("tool_material", "Coated Carbide (TiAlN)"),
-                    insert_type=request.form.get("insert_type", "CoroMill 390 (10mm)")
+                    name=request.form.get(
+                        "machine_name",
+                        target_machine_id
+                    ),
+                    material=request.form.get(
+                        "material",
+                        "CK45"
+                    ),
+                    tool_material=request.form.get(
+                        "tool_material",
+                        "Coated Carbide (TiAlN)"
+                    ),
+                    insert_type=request.form.get(
+                        "insert_type",
+                        "CoroMill 390 (10mm)"
+                    )
                 )
             )
+
             db.session.commit()
+
+        # ============================================================
+        # 14. SAVE PREDICTION RECORD
+        # ============================================================
 
         try:
+
+            confidence = round(
+                min(
+                    100.0,
+                    max(
+                        0.0,
+                        (
+                            float(
+                                sensor_quality.get(
+                                    "confidence",
+                                    0.0
+                                )
+                            )
+                            +
+                            float(
+                                agreement.get(
+                                    "score_pct",
+                                    0.0
+                                )
+                            )
+                        ) / 2.0
+                    )
+                ),
+                1
+            )
+
             record_entry = PredictionRecord(
                 machine_id=target_machine_id,
-                cycle=int(request.form.get("pass") or request.form.get("cycle") or 1),
-                wear_um=round(wear_um, 2),
-                health_score=health_alert["health_score"],
-                status=health_alert["status"],
-                confidence=round(
-                    min(100.0, max(0.0, (float(sensor_quality.get("confidence", 0.0)) + float(agreement.get("score_pct", 0.0))) / 2.0)),
-                    1
+
+                cycle=int(
+                    request.form.get("pass")
+                    or request.form.get("cycle")
+                    or 1
                 ),
-                agreement_pct=agreement.get("score_pct"),
+
+                wear_um=round(
+                    wear_um,
+                    2
+                ),
+
+                health_score=health_alert[
+                    "health_score"
+                ],
+
+                status=health_alert[
+                    "status"
+                ],
+
+                confidence=confidence,
+
+                agreement_pct=agreement.get(
+                    "score_pct"
+                ),
+
                 rul_passes=rul_passes,
-                recommendation=health_alert["recommendation"],
-                sensor_waveforms_json=json.dumps(time_series),
-                gradcam_json=json.dumps(gradcam_images),
-                sensor_quality_json=json.dumps(sensor_quality)
+
+                recommendation=health_alert[
+                    "recommendation"
+                ],
+
+                sensor_waveforms_json=json.dumps(
+                    time_series
+                ),
+
+                gradcam_json=json.dumps(
+                    gradcam_images
+                ),
+
+                sensor_quality_json=json.dumps(
+                    sensor_quality
+                )
             )
+
             db.session.add(record_entry)
             db.session.commit()
+
         except Exception as db_err:
-            print(f"[Database Warning] Could not save prediction record: {db_err}")
+
+            print(
+                f"[Database Warning] "
+                f"Could not save prediction record: {db_err}"
+            )
+
             db.session.rollback()
 
-        return jsonify({
-            "wear_um": round(wear_um, 2),
-            "status": health_alert["status"],
-            "badge_color": health_alert["badge"],
-            "health_score": health_alert["health_score"],
-            "confidence": round(
-                min(100.0, max(0.0, (float(sensor_quality.get("confidence", 0.0)) + float(agreement.get("score_pct", 0.0))) / 2.0)),
-                1
+        # ============================================================
+        # 15. RETURN RESULT TO FRONTEND
+        # ============================================================
+
+        confidence = round(
+            min(
+                100.0,
+                max(
+                    0.0,
+                    (
+                        float(
+                            sensor_quality.get(
+                                "confidence",
+                                0.0
+                            )
+                        )
+                        +
+                        float(
+                            agreement.get(
+                                "score_pct",
+                                0.0
+                            )
+                        )
+                    ) / 2.0
+                )
             ),
-            "agreement_pct": agreement.get("score_pct"),
+            1
+        )
+
+        return jsonify({
+
+            # --------------------------------------------------------
+            # Tool wear
+            # --------------------------------------------------------
+
+            "wear_um": round(
+                wear_um,
+                2
+            ),
+
+            # --------------------------------------------------------
+            # Tool health
+            # --------------------------------------------------------
+
+            "status": health_alert[
+                "status"
+            ],
+
+            "badge_color": health_alert[
+                "badge"
+            ],
+
+            "health_score": health_alert[
+                "health_score"
+            ],
+
+            # --------------------------------------------------------
+            # Prediction confidence
+            # --------------------------------------------------------
+
+            "confidence": confidence,
+
+            # --------------------------------------------------------
+            # Multimodal agreement
+            # --------------------------------------------------------
+
+            "agreement_pct": agreement.get(
+                "score_pct"
+            ),
+
+            # --------------------------------------------------------
+            # Remaining useful life
+            # --------------------------------------------------------
+
             "rul_passes": rul_passes,
+
+            # --------------------------------------------------------
+            # INDUSTRIAL ALERTS
+            # --------------------------------------------------------
+
             "system_alerts": system_alerts,
+
+            # --------------------------------------------------------
+            # VIBRATION METRICS
+            # --------------------------------------------------------
+
             "vibration_metrics": vib_stats,
-            "early_warning": health_alert["early_warning"],
-            "recommendation": health_alert["recommendation"],
-            "rec_type": health_alert["rec_type"],
+
+            # Example:
+            #
+            # {
+            #     "max_vib_g": 2.84,
+            #     "rms_vib_g": 1.31
+            # }
+            #
+            # If max_vib_g >= 2.5:
+            #
+            #     vibration alert is generated
+            #
+
+            # --------------------------------------------------------
+            # Tool health warning
+            # --------------------------------------------------------
+
+            "early_warning": health_alert[
+                "early_warning"
+            ],
+
+            "recommendation": health_alert[
+                "recommendation"
+            ],
+
+            "rec_type": health_alert[
+                "rec_type"
+            ],
+
+            # --------------------------------------------------------
+            # Detailed agreement
+            # --------------------------------------------------------
+
             "agreement": agreement,
+
+            # --------------------------------------------------------
+            # Sensor quality
+            # --------------------------------------------------------
+
             "sensor_quality": sensor_quality,
-            "model_used": "image_sensor.pt (Layer 6 CAM)",
-            "metrics": {"test_mae_um": 3.09, "test_rmse_um": 4.29, "test_r2": 0.9938},
+
+            # --------------------------------------------------------
+            # Model information
+            # --------------------------------------------------------
+
+            "model_used": (
+                "image_sensor.pt (Layer 6 CAM)"
+            ),
+
+            "metrics": {
+                "test_mae_um": 3.09,
+                "test_rmse_um": 4.29,
+                "test_r2": 0.9938
+            },
+
+            # --------------------------------------------------------
+            # Sensor waveform
+            # --------------------------------------------------------
+
             "sensor_waveforms": time_series,
+
+            # --------------------------------------------------------
+            # Grad-CAM
+            # --------------------------------------------------------
+
             "gradcam": gradcam_images
         })
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    # ================================================================
+    # GLOBAL PREDICTION ERROR
+    # ================================================================
 
+    except Exception as e:
+
+        print(
+            f"[Prediction Error] "
+            f"{type(e).__name__}: {e}"
+        )
+
+        return jsonify({
+            "error": str(e)
+        }), 500
 
 @app.route("/", methods=["GET"])
 def index():
